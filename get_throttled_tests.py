@@ -30,7 +30,7 @@ def get_true_positive_tests(true_positive_dir, trace_analysis_dir, wehe_record_d
         for true_positive_test in true_positive_per_replay:
             # check whether the necessary files exist
             original_pcap_file, inverted_pcap_file, regex_replayInfo_file, regex_xput_original_file, regex_xput_inverted_file, regex_mobileStat_file = get_test_files(
-                true_positive_test, trace_analysis_dir, wehe_record_dir)
+                true_positive_test["uniqueTestID"], trace_analysis_dir, wehe_record_dir)
             if not (original_pcap_file and inverted_pcap_file and regex_replayInfo_file and regex_xput_original_file and regex_xput_inverted_file and regex_mobileStat_file):
                 continue
             true_positive_per_carrier.append(true_positive_test["uniqueTestID"])
