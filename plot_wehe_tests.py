@@ -359,14 +359,14 @@ def get_pcap_stat(pcapFile, server_port=None):
     start_timestamp = 0
     start_seq = 0
 
-
-
+    arr_all_pList = [float(x) - start_seq for x in arr_all_pList]
+    arr_all_timeList = [float(x) - start_seq for x in arr_all_timeList]
     sent_in_pList = [float(x) - start_seq for x in sent_in_pList]
     sent_ret_pList = [float(x) - start_seq for x in sent_ret_pList]
     sent_in_timeList = [float(x) - start_timestamp for x in sent_in_timeList]
     sent_ret_timeList = [float(x) - start_timestamp for x in sent_ret_timeList]
 
-    return sent_in_pList, sent_in_timeList, sent_ret_pList, sent_ret_timeList, sent_all_pList, sent_all_timeList, sent_i_count, sent_r_count, sent_a_count, start_timestamp
+    return sent_in_pList, sent_in_timeList, sent_ret_pList, sent_ret_timeList, sent_all_pList, sent_all_timeList, arr_all_pList, arr_all_timeList, sent_i_count, sent_r_count, sent_a_count, start_timestamp
 
 
 def timestamp_after_start(timestamps, start_timestamp):
@@ -763,7 +763,6 @@ def plot_throughput_distribution(client_tputs_original, server_tputs_original, p
     plt.ylabel('Number of samples')
     plt.title(plot_title)
 
-
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
                  ax.get_xticklabels() + ax.get_yticklabels()):
         item.set_fontsize(20)
@@ -784,7 +783,8 @@ def index_plot_until(timestamps, until_time):
 def plot_seq_throughput_over_time(sent_in_timeList_original, sent_in_pList_original, sent_in_timeList_inverted, sent_in_pList_inverted,
                        receive_timeList_original, receive_pList_original, receive_timeList_inverted, receive_pList_inverted,
                        sent_ret_timeList_original, sent_ret_pList_original, sent_ret_timeList_inverted, sent_ret_pList_inverted,
-                       plot_carrier_directory, server_tputs_original, server_ts_original, client_tputs_original, client_ts_original, plot_title=""):
+                       ack_all_pList_original, ack_all_timeList_original,ack_all_pList_inverted, ack_all_timeList_inverted,
+                       server_tputs_original, server_ts_original, client_tputs_original, client_ts_original, plot_carrier_directory, plot_title=""):
     fig, ax1 = plt.subplots(figsize=(20, 8))
 
     plot_until_second = 200
@@ -796,7 +796,6 @@ def plot_seq_throughput_over_time(sent_in_timeList_original, sent_in_pList_origi
     ax2.plot(server_ts_original[:plot_until], server_tputs_original[:plot_until], color="#fb9a99", linewidth=2, label='Sent from server')
     plot_until = index_plot_until(client_ts_original, plot_until_second)
     ax2.plot(client_ts_original[:plot_until], client_tputs_original[:plot_until], color="#fdbf6f", linewidth=2, label='Received on client')
-
 
     # plot sequence for original replay
     plot_until = index_plot_until(sent_in_timeList_original, plot_until_second)
@@ -811,6 +810,19 @@ def plot_seq_throughput_over_time(sent_in_timeList_original, sent_in_pList_origi
              markeredgewidth=3,
              markersize=15, alpha=0.1,
              markeredgecolor="none", label='Inverted first trans')
+
+    # plot ACKs
+    plot_until = index_plot_until(ack_all_timeList_original, plot_until_second)
+    ax1.plot(ack_all_timeList_original[:plot_until], ack_all_pList_original[:plot_until], '.', markerfacecolor="#490B04",
+             markeredgewidth=3,
+             markersize=10, alpha=1,
+             markeredgecolor="none", label='Original acks')
+
+    plot_until = index_plot_until(ack_all_timeList_inverted, plot_until_second)
+    ax1.plot(ack_all_timeList_inverted[:plot_until], ack_all_pList_inverted[:plot_until], '.', markerfacecolor="#2E347C",
+             markeredgewidth=3,
+             markersize=10, alpha=1,
+             markeredgecolor="none", label='Original acks')
 
     # plot bytes received on client
     plot_until = index_plot_until(receive_timeList_original, plot_until_second)
@@ -877,10 +889,10 @@ def plot_test(replayInfo, mobileStats, client_dir, result_directory):
     if not (original_pcap_file and inverted_pcap_file and client_ts_original and client_ts_inverted):
         return False
 
-    sent_in_pList_original, sent_in_timeList_original, sent_ret_pList_original, sent_ret_timeList_original, sent_all_pList_original, sent_all_timeList_original, sent_i_count_original, sent_r_count_original, sent_a_count_original, start_timestamp = get_pcap_stat(
+    sent_in_pList_original, sent_in_timeList_original, sent_ret_pList_original, sent_ret_timeList_original, sent_all_pList_original, sent_all_timeList_original, ack_all_pList_original, ack_all_timeList_original, sent_i_count_original, sent_r_count_original, sent_a_count_original, start_timestamp = get_pcap_stat(
         original_pcap_file, server_port=server_port)
 
-    sent_in_pList_inverted, sent_in_timeList_inverted, sent_ret_pList_inverted, sent_ret_timeList_inverted, sent_all_pList_inverted, sent_all_timeList_inverted, sent_i_count_inverted, sent_r_count_inverted, sent_a_count_inverted, start_timestamp = get_pcap_stat(
+    sent_in_pList_inverted, sent_in_timeList_inverted, sent_ret_pList_inverted, sent_ret_timeList_inverted, sent_all_pList_inverted, sent_all_timeList_inverted, ack_all_pList_inverted, ack_all_timeList_inverted, sent_i_count_inverted, sent_r_count_inverted, sent_a_count_inverted, start_timestamp = get_pcap_stat(
         inverted_pcap_file, server_port=server_port)
 
     receive_timeList_original, receive_pList_original = bytes_over_time_from_throughput(client_tputs_original,
@@ -891,11 +903,8 @@ def plot_test(replayInfo, mobileStats, client_dir, result_directory):
                                                                                         client_ts_inverted,
                                                                                         start_timestamp)
 
-    if not (sent_in_pList_original and sent_in_pList_inverted and receive_pList_original):
+    if not (sent_in_pList_original and sent_in_pList_inverted and receive_pList_original and ack_all_pList_original):
         return False
-
-    # server_tputs_original, server_ts_original = doTputs(sent_in_timeList_original, sent_in_pList_original,
-    #                                                     num_buckets=len(client_tputs_original))
 
     client_sampling_interval = client_ts_original[1] - client_ts_original[0]
     server_tputs_original, server_ts_original = doTputsInterval(sent_in_timeList_original, sent_in_pList_original,
@@ -922,7 +931,8 @@ def plot_test(replayInfo, mobileStats, client_dir, result_directory):
     plot_seq_throughput_over_time(sent_in_timeList_original, sent_in_pList_original, sent_in_timeList_inverted, sent_in_pList_inverted,
                        receive_timeList_original, receive_pList_original, receive_timeList_inverted, receive_pList_inverted,
                        sent_ret_timeList_original, sent_ret_pList_original, sent_ret_timeList_inverted, sent_ret_pList_inverted,
-                       result_carrier_directory, server_tputs_original, server_ts_original, client_tputs_original, client_ts_original, plot_title=plot_title)
+                       ack_all_pList_original, ack_all_timeList_original,ack_all_pList_inverted, ack_all_timeList_inverted,
+                       server_tputs_original, server_ts_original, client_tputs_original, client_ts_original, result_carrier_directory, plot_title=plot_title)
 
     return True
 
@@ -971,7 +981,7 @@ def main():
         result_directory = sys.argv[2]
     except:
         print(
-            '\r\n Please provide the following four inputs: [data_directory] [result_directory] [plotting?]')
+            '\r\n Please provide the following four inputs: [data_directory] [result_directory]')
         sys.exit()
 
     num_plots = 100
