@@ -203,10 +203,9 @@ def main():
     test_stat = json.load(open(test_stat, "r"))
 
     classification_results_ISP = {}
+    classification_results_ISP_replay = {}
 
     for ISP_replay in test_stat:
-        classification_results_ISP[ISP_replay] = {}
-        all_loss_rates_difference = []
         test_stat_ISP_replay = []
         # print("test_stat[ISP_replay]", test_stat[ISP_replay])
         for uniqTestID in test_stat[ISP_replay]:
@@ -214,22 +213,31 @@ def main():
 
         classification_results = svm.predict(test_stat_ISP_replay)
 
-        if ISP_replay not in classification_results_ISP:
-            classification_results_ISP[ISP_replay] = {}
+        ISP = ISP_replay.split(")_")[0]
+
+        if ISP_replay not in classification_results_ISP_replay:
+            classification_results_ISP_replay[ISP_replay] = {}
+        if ISP not in classification_results_ISP:
+            classification_results_ISP[ISP] = {}
+
         for classification_result in classification_results:
-            if classification_result not in classification_results_ISP[ISP_replay]:
-                classification_results_ISP[ISP_replay][classification_result] = 0
-            classification_results_ISP[ISP_replay][classification_result] += 1
+            if classification_result not in classification_results_ISP_replay[ISP_replay]:
+                classification_results_ISP_replay[ISP_replay][classification_result] = 0
+            if classification_result not in classification_results_ISP[ISP]:
+                classification_results_ISP[ISP][classification_result] = 0
+            classification_results_ISP_replay[ISP_replay][classification_result] += 1
+            classification_results_ISP[ISP][classification_result] += 1
 
-        for index in range(len(test_stat_ISP_replay)):
-            # print(classification_results[index], classification_results[index]==1)
-            if classification_results[index] == 1:
-                all_loss_rates_difference.append(test_stat_ISP_replay[index][4] - test_stat_ISP_replay[index][5])
+        # for index in range(len(test_stat_ISP_replay)):
+        #     # print(classification_results[index], classification_results[index]==1)
+        #     if classification_results[index] == 1:
+        #         all_loss_rates_difference.append(test_stat_ISP_replay[index][4] - test_stat_ISP_replay[index][5])
+        #
+        # if len(all_loss_rates_difference) > 10:
+        #     simple_histogram_plot(all_loss_rates_difference, plot_title="{}_".format(ISP_replay))
 
-        if len(all_loss_rates_difference) > 10:
-            simple_histogram_plot(all_loss_rates_difference, plot_title="{}_".format(ISP_replay))
-
-    json.dump(classification_results_ISP, open("classification_results.json", "w"))
+    json.dump(classification_results_ISP, open("classification_results_ISP.json", "w"))
+    json.dump(classification_results_ISP_replay, open("classification_results_ISP_replay.json", "w"))
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 '''
 
-Inputs: analysis_result_dir, trace_analysis_dir, wehe_record_dir
+Inputs: analysis_result_dir, wehe_record_dir, trace_analysis_dir
 Outputs: None, copy throttled tests to trace_analysis_dir
 
 Go through the carriers in the analysis_result_dir directory.
@@ -9,7 +9,7 @@ For each carrier,
 
 For each throttled (true positive) test
     find the test in wehe_record_dir
-    if it has pcap files
+    if it has all files needed
         copy them to the trace_analysis_dir directory
 
 '''
@@ -150,12 +150,12 @@ def copy_test_files(true_positive_ids_per_carrier, trace_analysis_dir, wehe_reco
 def main():
     try:
         analysis_result_dir = sys.argv[1]
-        trace_analysis_dir = sys.argv[2]
-        wehe_record_dir = sys.argv[3]
+        wehe_record_dir = sys.argv[2]
+        trace_analysis_dir = sys.argv[3]
         num_true_positive = int(sys.argv[4])
     except:
         print(
-            '\r\n Please provide the following four inputs: [analysis_result_dir] [trace_analysis_dir] [wehe_record_dir] [num_true_positive_per_carrier_replay]')
+            '\r\n Please provide the following four inputs: [analysis_result_dir] [wehe_record_dir] [trace_analysis_dir] [num_true_positive_per_carrier_replay]')
         sys.exit()
 
     if not os.path.isdir(trace_analysis_dir):
