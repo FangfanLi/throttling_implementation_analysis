@@ -996,7 +996,7 @@ def main():
         client_dir = data_directory + '/' + client
         replayinfo_dir = client_dir + '/replayInfo/'
         if not os.path.isdir(replayinfo_dir):
-            return
+            continue
         # For every throttling test in data_directory
         for replayInfo in os.listdir(replayinfo_dir):
             replayInfo, mobileStatsFile = get_test_metadata(client_dir, replayInfo)
