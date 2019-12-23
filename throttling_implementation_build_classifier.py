@@ -9,14 +9,20 @@ import numpy as np
 
 from statistics import mean
 from statistics import median
-from sklearn.metrics import precision_recall_fscore_support
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_validate
+from sklearn.model_selection import ShuffleSplit
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
 
 from sklearn.svm import SVC
 
 
-def partition_tests(plots_directory, num_folders=3):
+def read_tests(plots_directory):
     skip_plot_type = "throughput_distribution"
-    all_tests = []
+    X = []
+    y = []
 
     for plot in os.listdir(plots_directory):
         if "png" not in plot:
@@ -42,38 +48,10 @@ def partition_tests(plots_directory, num_folders=3):
 
         if plot_type == skip_plot_type:
             continue
+        X.append([avg_server - avg_client, std_client/avg_client, std_server/avg_server, loss_original - loss_inverted])
+        y.append(implementation_type)
 
-        all_tests.append([avg_client, avg_server, std_client, std_server, loss_original, loss_inverted, implementation_type])
-
-    all_test_set = {}
-    all_labels = {}
-
-    # put tests into folders
-    for test in all_tests:
-        folder_num = random.randint(0, num_folders-1)
-
-        if folder_num not in all_test_set:
-            all_test_set[folder_num] = []
-            all_labels[folder_num] = []
-
-        all_test_set[folder_num].append(test[:-1])
-        all_labels[folder_num].append(test[-1])
-
-    # randomly choose one folder as the test set
-    test_set_folder_num = random.randint(0, num_folders - 1)
-
-    test_set = all_test_set[test_set_folder_num]
-    test_labels = all_labels[test_set_folder_num]
-
-    training_set = []
-    training_labels = []
-    for folder_num in all_test_set:
-        if folder_num == test_set_folder_num:
-            continue
-        training_set += all_test_set[folder_num]
-        training_labels += all_labels[folder_num]
-
-    return training_set, training_labels, test_set, test_labels
+    return X, y
 
 
 def get_accuracy(svm, test_set, test_labels):
@@ -105,16 +83,29 @@ def main():
             '\r\n Please provide the following input: [plots_directory] <num_folders>')
         sys.exit()
 
+    X, y = read_tests(plots_directory)
+
     num_folders = 5
-    if len(sys.argv) == 3:
-        num_folders = int(sys.argv[2])
 
-    training_set, training_labels, test_set, test_labels = partition_tests(plots_directory, num_folders)
+    svm = SVC(gamma='auto', probability=True)
+    cv = ShuffleSplit(n_splits=num_folders, test_size=0.3, random_state=random.randint(0, 100))
+    scores = cross_val_score(svm, X, y, cv=cv)
+    print("cross validation scores", scores)
 
-    X = np.array(training_set)
-    y = np.array(training_labels)
+    precisions = []
+    recalls = []
+    for i in range(num_folders):
+        random_state = random.randint(0, 100)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=random_state)
+        svm.fit(X_train, y_train)
+        y_pred = svm.predict(X_test)
+        precision = precision_score(y_test, y_pred, average='micro')
+        recall = recall_score(y_test, y_pred, average='micro')
+        precisions.append(precision)
+        recalls.append(recall)
+    print("precisions", precisions)
+    print("recalls", recalls)
 
-    svm = SVC(gamma='auto')
     svm.fit(X, y)
     today_date = datetime.datetime.today()
     today_date = today_date.strftime("%d-%B-%Y")
@@ -129,9 +120,6 @@ def main():
     pickle.dump(svm, open(filename, 'wb'))
     pickle.dump(svm, open(timestamped_filename, 'wb'))
 
-    predict_labels = svm.predict(test_set)
-    precision, recall, fbeta_score, support = precision_recall_fscore_support(test_labels,predict_labels, average='weighted')
-    print("precision {}, recall {}, fbeta {}, support {}".format(precision, recall, fbeta_score, support))
 
 if __name__ == "__main__":
     main()

@@ -135,14 +135,14 @@ def get_accuracy(svm, test_set, test_labels):
 def simple_histogram_plot(data_1, plot_title=""):
     # data_1_90 = data_1[: int(90 * len(data_1) / 100)]
     # interval = max(data_1_90) / float(100)
-    interval = 0.002
+    interval = 0.01
 
     bins = []
     for i in range(100):
         bins.append(i * interval)
 
     fig, ax = plt.subplots(figsize=(15, 6))
-    plt.hist(data_1, bins, alpha=0.3, color="#fdbf6f", label="loss rate difference")
+    plt.hist(data_1, bins, alpha=0.6, color="#fdbf6f")
     # plt.yscale('log')
     plt.legend(loc='lower right', markerscale=2, fontsize=30)
     plt.xlabel('Loss percentage')
@@ -197,6 +197,7 @@ def main():
             "\r\n Please provide the following input: [test_stat]")
         sys.exit()
 
+    predict_probability_threshold = 0.8
     filename = "svm_model.sav"
     svm = pickle.load(open(filename, "rb"))
 
@@ -205,37 +206,58 @@ def main():
     classification_results_ISP = {}
     classification_results_ISP_replay = {}
 
+    unknown_test_ids = {}
     for ISP_replay in test_stat:
         test_stat_ISP_replay = []
-        # print("test_stat[ISP_replay]", test_stat[ISP_replay])
+        unique_test_ids = []
         for uniqTestID in test_stat[ISP_replay]:
-            test_stat_ISP_replay.append(test_stat[ISP_replay][uniqTestID])
+            # [avg_client_tputs_original, avg_server_tputs_original, stdev_client_tputs_original,
+            #  stdev_server_tputs_original, loss_rate_original, loss_rate_inverted]
+            current_test_stat = test_stat[ISP_replay][uniqTestID]
+            avg_server = current_test_stat[0]
+            avg_client = current_test_stat[1]
+            std_client = current_test_stat[2]
+            std_server = current_test_stat[3]
+            loss_original = current_test_stat[4]
+            loss_inverted = current_test_stat[5]
+            test_stat_ISP_replay.append([avg_server - avg_client, std_client / avg_client, std_server / avg_server, loss_original - loss_inverted])
+            unique_test_ids.append(uniqTestID)
 
-        classification_results = svm.predict(test_stat_ISP_replay)
+        classification_results = svm.predict_proba(test_stat_ISP_replay)
 
         ISP = ISP_replay.split(")_")[0]
+        replayName = ISP_replay.split(")_")[1]
 
         if ISP_replay not in classification_results_ISP_replay:
             classification_results_ISP_replay[ISP_replay] = {}
         if ISP not in classification_results_ISP:
             classification_results_ISP[ISP] = {}
 
-        for classification_result in classification_results:
-            if classification_result not in classification_results_ISP_replay[ISP_replay]:
-                classification_results_ISP_replay[ISP_replay][classification_result] = 0
-            if classification_result not in classification_results_ISP[ISP]:
-                classification_results_ISP[ISP][classification_result] = 0
-            classification_results_ISP_replay[ISP_replay][classification_result] += 1
-            classification_results_ISP[ISP][classification_result] += 1
+        # prediction with probability
+        for index in range(len(classification_results)):
+            classification_result = list(classification_results[index])
+            if max(classification_result) < predict_probability_threshold:
+                # record the uniqueID of each unknown test, plot them out for further analysis
+                classification_label = "unknown"
+                uniqTestID = unique_test_ids[index]
+                if ISP not in unknown_test_ids:
+                    unknown_test_ids[ISP] = {}
 
-        # for index in range(len(test_stat_ISP_replay)):
-        #     # print(classification_results[index], classification_results[index]==1)
-        #     if classification_results[index] == 1:
-        #         all_loss_rates_difference.append(test_stat_ISP_replay[index][4] - test_stat_ISP_replay[index][5])
-        #
-        # if len(all_loss_rates_difference) > 10:
-        #     simple_histogram_plot(all_loss_rates_difference, plot_title="{}_".format(ISP_replay))
+                if replayName not in unknown_test_ids[ISP]:
+                    unknown_test_ids[ISP][replayName] = []
 
+                unknown_test_ids[ISP][replayName].append(uniqTestID)
+            else:
+                classification_label = classification_result.index(max(classification_result))
+            if classification_label not in classification_results_ISP_replay[ISP_replay]:
+                classification_results_ISP_replay[ISP_replay][classification_label] = 0
+            if classification_label not in classification_results_ISP[ISP]:
+                classification_results_ISP[ISP][classification_label] = 0
+            classification_results_ISP_replay[ISP_replay][classification_label] += 1
+            classification_results_ISP[ISP][classification_label] += 1
+
+    # simple_histogram_plot(loss_rate_zero_percentage_all, plot_title="{}_".format("loss_zero_percentage"))
+    json.dump(unknown_test_ids, open("unknown_test_ids.json", "w"))
     json.dump(classification_results_ISP, open("classification_results_ISP.json", "w"))
     json.dump(classification_results_ISP_replay, open("classification_results_ISP_replay.json", "w"))
 
