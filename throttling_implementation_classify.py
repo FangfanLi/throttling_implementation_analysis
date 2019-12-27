@@ -145,7 +145,8 @@ def simple_histogram_plot(data_1, plot_title=""):
     plt.hist(data_1, bins, alpha=0.6, color="#fdbf6f")
     # plt.yscale('log')
     plt.legend(loc='lower right', markerscale=2, fontsize=30)
-    plt.xlabel('Loss percentage')
+    # plt.xlabel('Loss percentage')
+    plt.xlabel('Percentage of tests with zero loss difference')
     plt.ylabel('Number of samples')
     plt.title(plot_title)
 
@@ -198,8 +199,8 @@ def main():
         sys.exit()
 
     predict_probability_threshold = 0.8
-    filename = "svm_model.sav"
-    svm = pickle.load(open(filename, "rb"))
+    filename = "trained_model.sav"
+    trained_model = pickle.load(open(filename, "rb"))
 
     test_stat = json.load(open(test_stat, "r"))
 
@@ -223,7 +224,7 @@ def main():
             test_stat_ISP_replay.append([avg_server - avg_client, std_client / avg_client, std_server / avg_server, loss_original - loss_inverted])
             unique_test_ids.append(uniqTestID)
 
-        classification_results = svm.predict_proba(test_stat_ISP_replay)
+        classification_results = trained_model.predict_proba(test_stat_ISP_replay)
 
         ISP = ISP_replay.split(")_")[0]
         replayName = ISP_replay.split(")_")[1]
@@ -232,6 +233,16 @@ def main():
             classification_results_ISP_replay[ISP_replay] = {}
         if ISP not in classification_results_ISP:
             classification_results_ISP[ISP] = {}
+
+        # for index in range(len(classification_results)):
+        #     classification_label = classification_results[index]
+        #
+        #     if classification_label not in classification_results_ISP_replay[ISP_replay]:
+        #         classification_results_ISP_replay[ISP_replay][classification_label] = 0
+        #     if classification_label not in classification_results_ISP[ISP]:
+        #         classification_results_ISP[ISP][classification_label] = 0
+        #     classification_results_ISP_replay[ISP_replay][classification_label] += 1
+        #     classification_results_ISP[ISP][classification_label] += 1
 
         # prediction with probability
         for index in range(len(classification_results)):
@@ -245,7 +256,6 @@ def main():
 
                 if replayName not in unknown_test_ids[ISP]:
                     unknown_test_ids[ISP][replayName] = []
-
                 unknown_test_ids[ISP][replayName].append(uniqTestID)
             else:
                 classification_label = classification_result.index(max(classification_result))
@@ -256,7 +266,7 @@ def main():
             classification_results_ISP_replay[ISP_replay][classification_label] += 1
             classification_results_ISP[ISP][classification_label] += 1
 
-    # simple_histogram_plot(loss_rate_zero_percentage_all, plot_title="{}_".format("loss_zero_percentage"))
+    # simple_histogram_plot(zero_loss_difference_rates, plot_title="{}_".format("loss_difference_zero_percentage"))
     json.dump(unknown_test_ids, open("unknown_test_ids.json", "w"))
     json.dump(classification_results_ISP, open("classification_results_ISP.json", "w"))
     json.dump(classification_results_ISP_replay, open("classification_results_ISP_replay.json", "w"))

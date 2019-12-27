@@ -956,7 +956,10 @@ def get_test_metadata(client_dir, replayInfo):
     replayInfoFileName = client_dir + '/replayInfo/' + replayInfo
     mobileStatsFile = client_dir + '/mobileStats/' + mobileStatsFileName
 
-    replayInfo = json.load(open(replayInfoFileName, 'r'))
+    try:
+        replayInfo = json.load(open(replayInfoFileName, 'r'))
+    except:
+        return None, None
 
     if not replayInfo:
         return None, None
@@ -974,21 +977,7 @@ def get_mobilestat(replayInfo, mobileStatsFile):
     return mobileStats
 
 
-def main():
-
-    try:
-        data_directory = sys.argv[1]
-        result_directory = sys.argv[2]
-    except:
-        print(
-            '\r\n Please provide the following four inputs: [data_directory] [result_directory]')
-        sys.exit()
-
-    num_plots = 100
-
-    if not os.path.isdir(result_directory):
-        os.mkdir(result_directory)
-
+def plot_tests_in_data_dir(data_directory, result_directory, num_plots):
     test_stat_per_carrier_replay = {}
 
     # for every client that has throttling tests
@@ -1027,8 +1016,73 @@ def main():
                 test_stat_per_carrier_replay[carrier_replay] = {}
             test_stat_per_carrier_replay[carrier_replay][unique_test_id] = test_stat
 
-            if (len(test_stat_per_carrier_replay[carrier_replay].keys()) >= num_plots):
+            if len(test_stat_per_carrier_replay[carrier_replay].keys()) >= num_plots:
                 continue
+
+
+def plot_one_test(data_directory, result_directory, plot_clientID, plot_historyCount):
+
+    client_dir = data_directory + '/' + plot_clientID
+    replayinfo_dir = client_dir + '/replayInfo/'
+    if not os.path.isdir(replayinfo_dir):
+        return False
+    # For every throttling test in data_directory
+    for replayInfo in os.listdir(replayinfo_dir):
+        replayInfo, mobileStatsFile = get_test_metadata(client_dir, replayInfo)
+
+        if not replayInfo:
+            continue
+
+        historyCount = replayInfo[6]
+
+        if historyCount != plot_historyCount:
+            continue
+
+        mobileStats = get_mobilestat(replayInfo, mobileStatsFile)
+
+        if not mobileStats:
+            continue
+
+        test_stat = plot_test(replayInfo, mobileStats, client_dir, result_directory)
+
+    return True
+
+
+def main():
+
+    try:
+        data_directory = sys.argv[1]
+        plot_directory = sys.argv[2]
+    except:
+        print(
+            '\r\n Please provide the following four inputs: [data_directory] [plot_directory] [tests_to_plot_file]')
+        sys.exit()
+
+    tests_to_plot = None
+
+    if len(sys.argv) == 4:
+        tests_to_plot_file = sys.argv[3]
+        try:
+            tests_to_plot = json.load(open(tests_to_plot_file, "r"))
+        except:
+            print(
+                '\r\n Please provide the following four inputs: [data_directory] [plot_directory] [tests_to_plot_file]')
+            sys.exit()
+
+    num_plots = 100
+
+    if not os.path.isdir(plot_directory):
+        os.mkdir(plot_directory)
+
+    if tests_to_plot:
+        for ISP in tests_to_plot:
+            for replay in tests_to_plot[ISP]:
+                for testID in tests_to_plot[ISP][replay]:
+                    clientID = testID.split("_")[0]
+                    historyCount = testID.split("_")[1]
+                    plot_one_test(data_directory, plot_directory, clientID, historyCount)
+
+    plot_tests_in_data_dir(data_directory, plot_directory, num_plots)
 
 
 if __name__ == "__main__":

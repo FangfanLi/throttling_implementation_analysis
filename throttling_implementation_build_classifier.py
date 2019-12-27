@@ -16,6 +16,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 
+from sklearn.linear_model import LogisticRegression
+
 from sklearn.svm import SVC
 
 
@@ -48,6 +50,7 @@ def read_tests(plots_directory):
 
         if plot_type == skip_plot_type:
             continue
+        # X.append([avg_server - avg_client, (std_client/avg_client) / (std_server/avg_server), loss_original - loss_inverted])
         X.append([avg_server - avg_client, std_client/avg_client, std_server/avg_server, loss_original - loss_inverted])
         y.append(implementation_type)
 
@@ -87,18 +90,20 @@ def main():
 
     num_folders = 5
 
-    svm = SVC(gamma='auto', probability=True)
+    trained_model = SVC(gamma='auto', probability=True)
+    # trained_model = LogisticRegression(multi_class='multinomial', solver='lbfgs')
     cv = ShuffleSplit(n_splits=num_folders, test_size=0.3, random_state=random.randint(0, 100))
-    scores = cross_val_score(svm, X, y, cv=cv)
-    print("cross validation scores", scores)
+    scores = cross_val_score(trained_model, X, y, cv=cv)
+    print("cross validation scores", mean(scores))
 
     precisions = []
     recalls = []
+
     for i in range(num_folders):
         random_state = random.randint(0, 100)
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=random_state)
-        svm.fit(X_train, y_train)
-        y_pred = svm.predict(X_test)
+        trained_model.fit(X_train, y_train)
+        y_pred = trained_model.predict(X_test)
         precision = precision_score(y_test, y_pred, average='micro')
         recall = recall_score(y_test, y_pred, average='micro')
         precisions.append(precision)
@@ -106,7 +111,7 @@ def main():
     print("precisions", precisions)
     print("recalls", recalls)
 
-    svm.fit(X, y)
+    trained_model.fit(X, y)
     today_date = datetime.datetime.today()
     today_date = today_date.strftime("%d-%B-%Y")
 
@@ -115,10 +120,10 @@ def main():
     if not os.path.exists(model_dir):
         os.mkdir(model_dir)
 
-    filename = "svm_model.sav"
-    timestamped_filename = "{}svm_model_{}.sav".format(model_dir, today_date)
-    pickle.dump(svm, open(filename, 'wb'))
-    pickle.dump(svm, open(timestamped_filename, 'wb'))
+    filename = "trained_model.sav"
+    timestamped_filename = "{}trained_model_{}.sav".format(model_dir, today_date)
+    pickle.dump(trained_model, open(filename, 'wb'))
+    pickle.dump(trained_model, open(timestamped_filename, 'wb'))
 
 
 if __name__ == "__main__":
