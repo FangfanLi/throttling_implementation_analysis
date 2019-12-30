@@ -198,7 +198,7 @@ def main():
             "\r\n Please provide the following input: [test_stat]")
         sys.exit()
 
-    predict_probability_threshold = 0.8
+    predict_probability_threshold = 0.5
     filename = "trained_model.sav"
     trained_model = pickle.load(open(filename, "rb"))
 
@@ -221,7 +221,11 @@ def main():
             std_server = current_test_stat[3]
             loss_original = current_test_stat[4]
             loss_inverted = current_test_stat[5]
-            test_stat_ISP_replay.append([avg_server - avg_client, std_client / avg_client, std_server / avg_server, loss_original - loss_inverted])
+            # 4 features
+            # test_stat_ISP_replay.append([avg_server - avg_client, std_client / avg_client, std_server / avg_server, loss_original - loss_inverted])
+            # 3 features
+            test_stat_ISP_replay.append([avg_server - avg_client, (std_server/avg_server) - (std_client/avg_client),
+                                         loss_original - loss_inverted])
             unique_test_ids.append(uniqTestID)
 
         classification_results = trained_model.predict_proba(test_stat_ISP_replay)

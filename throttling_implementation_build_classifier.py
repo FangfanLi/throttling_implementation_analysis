@@ -13,6 +13,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import cross_validate
 from sklearn.model_selection import ShuffleSplit
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold
 from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 
@@ -20,6 +21,7 @@ from sklearn.linear_model import LogisticRegression
 
 from sklearn.svm import SVC
 
+train_stat_to_test = {}
 
 def read_tests(plots_directory):
     skip_plot_type = "throughput_distribution"
@@ -50,9 +52,12 @@ def read_tests(plots_directory):
 
         if plot_type == skip_plot_type:
             continue
-        # X.append([avg_server - avg_client, (std_client/avg_client) / (std_server/avg_server), loss_original - loss_inverted])
-        X.append([avg_server - avg_client, std_client/avg_client, std_server/avg_server, loss_original - loss_inverted])
+        X.append([avg_server - avg_client, (std_server/avg_server) - (std_client/avg_client), loss_original - loss_inverted])
+        # X.append([avg_server - avg_client, std_client/avg_client, std_server/avg_server, loss_original - loss_inverted])
         y.append(implementation_type)
+
+        # train_stat_to_test[(avg_server - avg_client, std_client/avg_client, std_server/avg_server, loss_original - loss_inverted)] = "{}_{}".format(client_id, history_count)
+        train_stat_to_test[(avg_server - avg_client, (std_server/avg_server) - (std_client/avg_client), loss_original - loss_inverted)] = "{}_{}".format(client_id, history_count)
 
     return X, y
 
@@ -88,28 +93,44 @@ def main():
 
     X, y = read_tests(plots_directory)
 
-    num_folders = 5
-
     trained_model = SVC(gamma='auto', probability=True)
-    # trained_model = LogisticRegression(multi_class='multinomial', solver='lbfgs')
-    cv = ShuffleSplit(n_splits=num_folders, test_size=0.3, random_state=random.randint(0, 100))
-    scores = cross_val_score(trained_model, X, y, cv=cv)
-    print("cross validation scores", mean(scores))
+    probability_threshold = 0.5
 
-    precisions = []
-    recalls = []
+    score_all = []
+    # random_state = random.randint(0, 100)
 
-    for i in range(num_folders):
-        random_state = random.randint(0, 100)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=random_state)
+    kf = KFold(n_splits=5, random_state=None, shuffle=False)
+    X = np.array(X)
+    y = np.array(y)
+    iter_count = 0
+
+    for train_index, test_index in kf.split(X):
+        print("count iteration ", iter_count)
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+        count_unknown = 0
+        count_wrong = 0
+        count_correct = 0
         trained_model.fit(X_train, y_train)
-        y_pred = trained_model.predict(X_test)
-        precision = precision_score(y_test, y_pred, average='micro')
-        recall = recall_score(y_test, y_pred, average='micro')
-        precisions.append(precision)
-        recalls.append(recall)
-    print("precisions", precisions)
-    print("recalls", recalls)
+        X_test = list(X_test)
+        y_pred = trained_model.predict_proba(X_test)
+        for index in range(len(y_pred)):
+            # X_test_data = list(X_test[index])
+            y_pred_proba = list(y_pred[index])
+            if max(y_pred_proba) < probability_threshold:
+                count_unknown += 1
+                # print("unknown, pred, test", (X_test_data[0], X_test_data[1], X_test_data[2]), train_stat_to_test[(X_test_data[0], X_test_data[1], X_test_data[2])], y_pred_proba.index(max(y_pred_proba)), (y_test[index] - 1))
+            # index starts from 0, but our label starts from 1
+            elif y_pred_proba.index(max(y_pred_proba)) != (y_test[index] - 1):
+                count_wrong += 1
+                # print("wrong, pred, test",(X_test_data[0], X_test_data[1], X_test_data[2]),  train_stat_to_test[(X_test_data[0], X_test_data[1], X_test_data[2])], y_pred_proba.index(max(y_pred_proba)), (y_test[index] - 1))
+            else:
+                count_correct += 1
+
+        score_all.append(1 - (count_unknown + count_wrong)/len(y_pred))
+        iter_count += 1
+
+    print("average score, all scores", mean(score_all), score_all)
 
     trained_model.fit(X, y)
     today_date = datetime.datetime.today()

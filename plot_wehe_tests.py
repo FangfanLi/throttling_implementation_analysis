@@ -621,9 +621,11 @@ def getCarrierName(mobileStats, clientIP):
         carrierName = mobileStats["updatedCarrierName"]
     elif networkType == 'WIFI':
         carrierName = getCarrierNameByIP(clientIP)
-    else:
+    elif "carrierName" in mobileStats:
         carrierName = ''.join(e for e in mobileStats['carrierName'] if e.isalnum())
         carrierName = carrierName + ' (cellular)'
+    else:
+        carrierName =  "unknown (cellular)"
 
     # Special case for French ISPs, manually verified the transforming from whois results to provider names
     if country == 'France' and networkType == 'WIFI':
