@@ -208,6 +208,8 @@ def main():
     classification_results_ISP_replay = {}
 
     unknown_test_ids = {}
+    # review_tests = {}
+
     for ISP_replay in test_stat:
         test_stat_ISP_replay = []
         unique_test_ids = []
@@ -251,10 +253,10 @@ def main():
         # prediction with probability
         for index in range(len(classification_results)):
             classification_result = list(classification_results[index])
+            uniqTestID = unique_test_ids[index]
             if max(classification_result) < predict_probability_threshold:
                 # record the uniqueID of each unknown test, plot them out for further analysis
                 classification_label = "unknown"
-                uniqTestID = unique_test_ids[index]
                 if ISP not in unknown_test_ids:
                     unknown_test_ids[ISP] = {}
 
@@ -267,10 +269,16 @@ def main():
                 classification_results_ISP_replay[ISP_replay][classification_label] = 0
             if classification_label not in classification_results_ISP[ISP]:
                 classification_results_ISP[ISP][classification_label] = 0
+
+            # if "ATT (cellular" in ISP and "Youtube_12122018" in replayName:
+            #     if classification_label not in review_tests:
+            #         review_tests[classification_label] = []
+            #     review_tests[classification_label].append(uniqTestID)
             classification_results_ISP_replay[ISP_replay][classification_label] += 1
             classification_results_ISP[ISP][classification_label] += 1
 
     # simple_histogram_plot(zero_loss_difference_rates, plot_title="{}_".format("loss_difference_zero_percentage"))
+    # json.dump(review_tests, open("review_tests_yt_att.json", "w"))
     json.dump(unknown_test_ids, open("unknown_test_ids.json", "w"))
     json.dump(classification_results_ISP, open("classification_results_ISP.json", "w"))
     json.dump(classification_results_ISP_replay, open("classification_results_ISP_replay.json", "w"))

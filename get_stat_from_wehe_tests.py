@@ -442,7 +442,9 @@ def bytes_over_time_from_throughput(client_tputs, client_ts, start_timestamp=Non
 # Load mobile Stats from mobileStat file (after separating the metadata connection)
 def loadMobileStatsFile(mobileStatsFile):
     try:
-        mobileStatsJson = mobileStatsFile + '.json'
+        mobileStatsJson = mobileStatsFile
+        if "json" not in mobileStatsFile:
+            mobileStatsJson = mobileStatsFile + '.json'
         if os.path.exists(mobileStatsJson):
             mobileStatsString = json.load(open(mobileStatsJson, 'r'))
             mobileStats = json.loads(mobileStatsString)
