@@ -4,6 +4,12 @@ import os
 import sys
 import traceback
 import reverse_geocode
+import matplotlib
+import datetime
+from datetime import datetime as dt
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 
 def get_file_from_partial_name(file_partial_name):
@@ -40,7 +46,7 @@ def loadMobileStatsFile(mobileStatsFile):
     return mobileStats
 
 
-def get_test_files(test_id, wehe_record_dir):
+def get_test_stat(test_id, wehe_record_dir):
     userID = test_id.split("_")[0]
     historyCount = test_id.split("_")[1]
     user_dir = wehe_record_dir + "/" + userID + "/"
@@ -53,11 +59,10 @@ def get_test_files(test_id, wehe_record_dir):
     replayInfo_file = get_file_from_partial_name(regex_replayInfo_file)
     mobileStat_file = get_file_from_partial_name(regex_mobileStat_file)
     if not replayInfo_file:
+        print("\r\n no replayInfo_file", replayInfo_file)
         return None, None
 
     replayInfo = json.load(open(replayInfo_file, 'r'))
-    print(mobileStat_file)
-
     mobileStats = get_mobilestat(replayInfo, mobileStat_file)
 
     return replayInfo, mobileStats
@@ -68,9 +73,6 @@ def loadMobileStats(mobileStats):
     try:
         lat = mobileStats['locationInfo']['latitude']
         lon = mobileStats['locationInfo']['longitude']
-        localTime = mobileStats['locationInfo']['localTime']
-        ymd = localTime.split(" ")[0]
-        hour = localTime.split(" ")[1].split("-")[0]
         # later version of the replay server stores location info in replayInfo file
         if 'country' in mobileStats['locationInfo'] and 'countryCode' in mobileStats['locationInfo'] and lat:
             lat = float("{0:.1f}".format(float(lat)))
@@ -100,24 +102,72 @@ def loadMobileStats(mobileStats):
         city = ''
         countryCode = ''
         lat = lon = ''
-        ymd = hour = ""
 
-    return lat, lon, country, countryCode, city, ymd, hour
+    return lat, lon, country, countryCode, city
 
 
 def find_meda_data(one_test_id, wehe_record_dir):
-    replayInfo, mobileStats = get_test_files(one_test_id, wehe_record_dir)
-    if replayInfo:
-        lat, lon, country, countryCode, city, ymd, hour = loadMobileStats(mobileStats)
+    replayInfo, mobileStats = get_test_stat(one_test_id, wehe_record_dir)
+    if mobileStats:
+        lat, lon, country, countryCode, city = loadMobileStats(mobileStats)
+        try:
+            localTime = mobileStats['locationInfo']['localTime']
+        except:
+            localTime = replayInfo[0]
+
+        ymd = localTime.split(" ")[0]
+        hour = localTime.split(" ")[1].split("-")[0]
+
         return (ymd, hour, (lat, lon))
     else:
         return None
 
 
+def get_tests_per_day(classified_tests_meta_data):
+    tests_per_class_per_day = {}
+    for one_class in classified_tests_meta_data:
+        tests_per_class_per_day[one_class] = {}
+        for one_test in classified_tests_meta_data[one_class]:
+            ymd = one_test[0]
+            if ymd not in tests_per_class_per_day[one_class]:
+                tests_per_class_per_day[one_class][ymd] = 0
+            tests_per_class_per_day[one_class][ymd] += 1
+
+    return tests_per_class_per_day
+
+
+def plot_classification_over_time(classified_tests_meta_data):
+    tests_per_class_per_day = get_tests_per_day(classified_tests_meta_data)
+    all_color = ['#a6611a', '#018571', '#ca0020', '#0571b0', "#404040"]
+    fig, ax = plt.subplots()
+    for one_class in tests_per_class_per_day:
+        all_dates = list(tests_per_class_per_day[one_class].keys())
+        all_dates.sort(key=lambda date: datetime.datetime.strptime(date, '%Y-%m-%d'))
+        all_num_tests = []
+        all_dates_plot = []
+        for one_date in all_dates:
+            dateFormatted = dt.strptime(one_date, '%Y-%m-%d').date()
+            all_dates_plot.append(dateFormatted)
+            all_num_tests.append(tests_per_class_per_day[one_class][one_date])
+
+        if one_class != "unknown":
+            color_ind = int(one_class)
+        else:
+            color_ind = 4
+
+        plt.plot(all_dates_plot, all_num_tests, label="{}".format(one_class), linewidth=1, alpha=0.5, color=all_color[color_ind])
+
+    fig.autofmt_xdate()
+    plt.legend(prop={'size': 15})
+    fig.tight_layout()
+    plt.savefig('{}_xPutsCDF.png'.format("yt_att"),
+                bbox_inches='tight')
+    plt.cla()
+    plt.clf()
+    plt.close('all')
+
 
 def main():
-
-    wehe_record_dir = "/net/data/record-replay/weheRecord/"
 
     try:
         wehe_record_dir = sys.argv[1]
@@ -140,7 +190,7 @@ def main():
             if meta_data:
                 classified_tests_meta_data[classification].append(meta_data)
 
-    print(classified_tests_meta_data)
+    plot_classification_over_time(classified_tests_meta_data)
 
 
 if __name__ == "__main__":
