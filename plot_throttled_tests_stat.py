@@ -3,13 +3,38 @@ import glob
 import os
 import sys
 import traceback
+import reverse_geocoder
 import reverse_geocode
 import matplotlib
 import datetime
+from shapely.geometry import Point
 from datetime import datetime as dt
 import numpy as np
+import geopandas as gpd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+
+
+def readStatesPolygon():
+    df = gpd.read_file("cb_2017_us_state_500k.shp")
+
+    statesPolygons = {}
+
+    for index, row in df.iterrows():
+        statesPolygons[row['STUSPS']] = row['geometry']
+
+    return statesPolygons
+
+
+def get_US_states(longitude, latitude):
+    statesPolygons = readStatesPolygon()
+    geoPoint = Point(longitude, latitude)
+
+    for state in statesPolygons:
+        if geoPoint.within(statesPolygons[state]):
+            return state
+
+    return ''
 
 
 def get_file_from_partial_name(file_partial_name):
@@ -59,7 +84,6 @@ def get_test_stat(test_id, wehe_record_dir):
     replayInfo_file = get_file_from_partial_name(regex_replayInfo_file)
     mobileStat_file = get_file_from_partial_name(regex_mobileStat_file)
     if not replayInfo_file:
-        print("\r\n no replayInfo_file", replayInfo_file)
         return None, None
 
     replayInfo = json.load(open(replayInfo_file, 'r'))
@@ -171,15 +195,18 @@ def main():
 
     try:
         wehe_record_dir = sys.argv[1]
+        classified_tests_file = sys.argv[2]
     except:
         print(
-            "\r\n Please provide the following input: [wehe_record_dir]")
+            "\r\n Please provide the following input: [wehe_record_dir] [classified_tests_file]")
         sys.exit()
 
     classified_tests_meta_data = {}
     # load tests
-    classified_tests_file = "review_tests_yt_att.json"
     classified_tests = json.load(open(classified_tests_file, "r"))
+
+    classified_test_states = {}
+    classified_user_id = {}
     # tests are separated by classification results
     for classification in classified_tests:
         classified_tests_meta_data[classification] = []
@@ -189,8 +216,30 @@ def main():
             meta_data = find_meda_data(one_test_id, wehe_record_dir)
             if meta_data:
                 classified_tests_meta_data[classification].append(meta_data)
+                coordinates = meta_data[2]
+                if coordinates[0] != "":
+                    coordinates = [(float(coordinates[0]), float(coordinates[1]))]
+                    test_state = reverse_geocoder.search(coordinates)[0]["admin1"]
+                    if test_state not in classified_test_states:
+                        classified_test_states[test_state] = {}
+                    if classification not in classified_test_states[test_state]:
+                        classified_test_states[test_state][classification] = 0
+                    classified_test_states[test_state][classification] += 1
+                userID = one_test_id.split("_")[0]
+                if userID not in classified_user_id:
+                    classified_user_id[userID] = {}
+                if classification not in classified_user_id[userID]:
+                    classified_user_id[userID][classification] = 0
+                classified_user_id[userID][classification] += 1
+
+    count_userid_multi_classification = 0
+    for userID in classified_user_id:
+        if len(classified_user_id[userID].keys()) > 1:
+            count_userid_multi_classification += 1
 
     plot_classification_over_time(classified_tests_meta_data)
+    json.dump(classified_test_states, open("classified_test_states.json", "w"))
+    json.dump(classified_user_id, open("classified_user_id.json", "w"))
 
 
 if __name__ == "__main__":

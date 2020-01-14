@@ -1032,6 +1032,20 @@ def main():
             if not test_stat:
                 continue
 
+            if mobileStats:
+                lat, lon, country, countryCode, city = loadMobileStats(mobileStats)
+                try:
+                    localTime = mobileStats['locationInfo']['localTime']
+                except:
+                    localTime = replayInfo[0]
+
+                ymd = localTime.split(" ")[0]
+                hour = localTime.split(" ")[1].split("-")[0]
+            else:
+                ymd = hour = lat = lon = ""
+
+            test_stat += [ymd, hour, (lat, lon)]
+
             carrier_replay = "{}_{}".format(carrierName, replayName)
 
             if carrier_replay not in test_stat_per_carrier_replay:
