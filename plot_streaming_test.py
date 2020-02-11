@@ -69,7 +69,6 @@ def sort_quality_change(video_qualities):
 
 
 def plot_bufferedbytes_quality(video_qualities, seconds_buffered, plot_until_time):
-
     quality_change, sorted_quality_change_keys = sort_quality_change(video_qualities)
 
     quality_colors = FIVE_QUALITY_COLOR[:len(sorted_quality_change_keys)]
@@ -95,7 +94,7 @@ def plot_bufferedbytes_quality(video_qualities, seconds_buffered, plot_until_tim
     step = 1
     levels = range(min, max + step, step)
     CS3 = plt.contourf(Z, levels, cmap=mymap)
-    cbar = plt.colorbar(CS3, orientation="horizontal")
+    cbar = plt.colorbar(CS3, orientation="horizontal", pad=0.3)
     cbar.ax.set_xticklabels(sorted_quality_change_keys)
 
     plt.xlim((0, plot_until_time))
@@ -224,36 +223,6 @@ def get_pcap_stat(pcapFile, server_port=None):
     return sent_in_pList, sent_in_timeList, sent_ret_pList, sent_ret_timeList, sent_all_pList, sent_all_timeList, arr_all_pList, arr_all_timeList, sent_i_count, sent_r_count, sent_a_count, start_timestamp
 
 
-def plot_throughput_distribution(client_tputs_original, server_tputs_original, plot_carrier_directory, plot_title=""):
-    fig, ax = plt.subplots(figsize=(15, 6))
-
-    client_tputs_original.sort()
-
-    client_tputs_original_90 = client_tputs_original[: int(90 * len(client_tputs_original) / 100)]
-    server_tputs_original_90 = server_tputs_original[: int(90 * len(client_tputs_original) / 100)]
-    interval = max(client_tputs_original_90 + server_tputs_original_90) / float(100)
-
-    bins = []
-    for i in range(100):
-        bins.append(i * interval)
-
-    plt.hist(client_tputs_original, bins, alpha=0.3, color="#fdbf6f", label="received on client")
-    plt.hist(server_tputs_original, bins, alpha=0.3, color="#fb9a99", label="sent from server")
-
-    plt.yscale('log')
-    plt.legend(loc='lower right', markerscale=2, fontsize=30)
-    plt.xlabel('Throughput (Mbps)')
-    plt.ylabel('Number of samples')
-    plt.title(plot_title)
-
-    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
-                 ax.get_xticklabels() + ax.get_yticklabels()):
-        item.set_fontsize(20)
-    plt.tight_layout()
-    plt.savefig('{}/throughput_distribution--{}.png'.format(plot_carrier_directory, plot_title))
-    plt.close()
-
-
 def index_plot_until(timestamps, until_time):
     index_until = 0
     for timestamp in timestamps:
@@ -264,9 +233,9 @@ def index_plot_until(timestamps, until_time):
 
 
 def plot_seq_throughput_over_time(sent_in_timeList_0, sent_in_pList_0, sent_in_timeList_1, sent_in_pList_1,
-                       sent_ret_timeList_0, sent_ret_pList_0, sent_ret_timeList_1, sent_ret_pList_1,
-                       ack_all_pList_0, ack_all_timeList_0, ack_all_pList_1, ack_all_timeList_1,
-                       plot_carrier_directory, label_0, label_1, plot_until_time, plot_title=""):
+                                  sent_ret_timeList_0, sent_ret_pList_0, sent_ret_timeList_1, sent_ret_pList_1,
+                                  ack_all_pList_0, ack_all_timeList_0, ack_all_pList_1, ack_all_timeList_1,
+                                  plot_carrier_directory, label_0, label_1, plot_until_time, plot_title=""):
     # fig, ax1 = plt.subplots(figsize=(20, 8))
 
     plot_until_second = plot_until_time
@@ -321,31 +290,42 @@ def plot_seq_throughput_over_time(sent_in_timeList_0, sent_in_pList_0, sent_in_t
     #                  ax.get_xticklabels() + ax.get_yticklabels()):
     #         item.set_fontsize(20)
     # plt.tight_layout()
-    plt.savefig('{}/seq_throughput_over_time--{}.png'.format(plot_carrier_directory, plot_title))
+    # plt.savefig('{}/seq_throughput_over_time--{}.png'.format(plot_carrier_directory, plot_title))
     # plt.close()
 
 
-def plot_test(pcap_file_0, pcap_file_1, label_0, label_1, plot_until_time):
+def load_packet_info(pcap_file_0, pcap_file_1):
+    server_port = "80"
 
     if not (pcap_file_0 and pcap_file_1):
         return False
 
     sent_in_pList_0, sent_in_timeList_0, sent_ret_pList_0, sent_ret_timeList_0, sent_all_pList_0, sent_all_timeList_0, ack_all_pList_0, ack_all_timeList_0, sent_i_count_0, sent_r_count_0, sent_a_count_0, start_timestamp = get_pcap_stat(
-        pcap_file_0, server_port="80")
+        pcap_file_0, server_port=server_port)
 
     sent_in_pList_1, sent_in_timeList_1, sent_ret_pList_1, sent_ret_timeList_1, sent_all_pList_1, sent_all_timeList_1, ack_all_pList_1, ack_all_timeList_1, sent_i_count_1, sent_r_count_1, sent_a_count_1, start_timestamp = get_pcap_stat(
-        pcap_file_1, server_port="80")
+        pcap_file_1, server_port=server_port)
 
-    loss_rate_0 = round(sent_r_count_0 / sent_a_count_0, 5)
-    loss_rate_1 = round(sent_r_count_1 / sent_a_count_1, 5)
+    return sent_in_timeList_0, sent_in_pList_0, sent_in_timeList_1, sent_in_pList_1, \
+           sent_ret_timeList_0, sent_ret_pList_0, sent_ret_timeList_1, sent_ret_pList_1, \
+           ack_all_timeList_0, ack_all_pList_0, ack_all_timeList_1, ack_all_pList_1
+
+
+def plot_test(sent_in_timeList_0, sent_in_pList_0, sent_in_timeList_1, sent_in_pList_1, sent_ret_timeList_0,
+              sent_ret_pList_0, sent_ret_timeList_1, sent_ret_pList_1, ack_all_timeList_0, ack_all_pList_0,
+              ack_all_timeList_1, ack_all_pList_1, label_0, label_1, plot_until_time):
+
+    loss_rate_0 = round(len(sent_ret_pList_0) / len(sent_in_pList_0 + sent_ret_pList_0), 5)
+    loss_rate_1 = round(len(sent_ret_pList_1) / len(sent_in_pList_1 + sent_ret_pList_1), 5)
 
     plot_title = "{} vs {} --{}--{}".format(label_0, label_1, loss_rate_0, loss_rate_1)
 
     plot_seq_throughput_over_time(sent_in_timeList_0, sent_in_pList_0, sent_in_timeList_1, sent_in_pList_1,
-                       sent_ret_timeList_0, sent_ret_pList_0, sent_ret_timeList_1, sent_ret_pList_1,
-                       ack_all_timeList_0, ack_all_pList_0, ack_all_timeList_1, ack_all_pList_1, "./", label_0, label_1, plot_until_time, plot_title=plot_title)
+                                  sent_ret_timeList_0, sent_ret_pList_0, sent_ret_timeList_1, sent_ret_pList_1,
+                                  ack_all_timeList_0, ack_all_pList_0, ack_all_timeList_1, ack_all_pList_1, "./",
+                                  label_0, label_1, plot_until_time, plot_title=plot_title)
 
-    return True
+    return plot_title
 
 
 def parse_video_stat(video_stat):
@@ -362,7 +342,7 @@ def parse_video_stat(video_stat):
         else:
             buffered_until = stat["buffered"][0]["end"]
         current_ts = stat["timestamp"]
-        current_time = (current_ts - initial_ts)/1000
+        current_time = (current_ts - initial_ts) / 1000
         current_playtime = stat["currentTime"]
         buffered = buffered_until - current_playtime
         seconds_buffered.append((buffered, current_time))
@@ -385,12 +365,21 @@ def main():
 
     seconds_buffered, video_qualities = parse_video_stat(video_stat)
 
-    plot_until_time = seconds_buffered[-1][1]
     plt.subplot(2, 1, 1)
-    plot_test(pcap0, pcap1, label0, label1, plot_until_time)
+    sent_in_timeList_0, sent_in_pList_0, sent_in_timeList_1, sent_in_pList_1, \
+    sent_ret_timeList_0, sent_ret_pList_0, sent_ret_timeList_1, sent_ret_pList_1, \
+    ack_all_timeList_0, ack_all_pList_0, ack_all_timeList_1, ack_all_pList_1 = load_packet_info(pcap0, pcap1)
+
+    plot_until_time = max(seconds_buffered[-1][1], sent_in_timeList_0[-1])
+
+    plot_title = plot_test(sent_in_timeList_0, sent_in_pList_0, sent_in_timeList_1, sent_in_pList_1, sent_ret_timeList_0,
+              sent_ret_pList_0, sent_ret_timeList_1, sent_ret_pList_1, ack_all_timeList_0, ack_all_pList_0,
+              ack_all_timeList_1, ack_all_pList_1, label0, label1, plot_until_time)
+
     plt.subplot(2, 1, 2)
     plot_bufferedbytes_quality(video_qualities, seconds_buffered, plot_until_time)
-    plt.show()
+    plt.savefig('{}/{}.png'.format("./", plot_title), dpi=300)
+    # plt.show()
 
 
 if __name__ == "__main__":
