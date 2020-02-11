@@ -5,6 +5,7 @@ import glob
 import json
 import pickle
 import statistics
+import matplotlib
 
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
@@ -67,7 +68,7 @@ def sort_quality_change(video_qualities):
     return quality_change, sorted_quality_change_keys
 
 
-def plot_bufferedbytes_quality(video_qualities, seconds_buffered):
+def plot_bufferedbytes_quality(video_qualities, seconds_buffered, plot_until_time):
 
     quality_change, sorted_quality_change_keys = sort_quality_change(video_qualities)
 
@@ -86,6 +87,18 @@ def plot_bufferedbytes_quality(video_qualities, seconds_buffered):
         seconds_buffered_x.append(buffered[1])
     plt.plot(seconds_buffered_x, seconds_buffered_y)
     plt.ylabel('buffered (seconds)')
+    plt.xlabel('time (s)')
+
+    mymap = matplotlib.colors.ListedColormap(quality_colors)
+    Z = [[0, 0], [0, 0]]
+    min, max = (0, len(quality_colors))
+    step = 1
+    levels = range(min, max + step, step)
+    CS3 = plt.contourf(Z, levels, cmap=mymap)
+    cbar = plt.colorbar(CS3, orientation="horizontal")
+    cbar.ax.set_xticklabels(sorted_quality_change_keys)
+
+    plt.xlim((0, plot_until_time))
 
 
 def get_pcap_stat(pcapFile, server_port=None):
@@ -260,6 +273,7 @@ def plot_seq_throughput_over_time(sent_in_timeList_0, sent_in_pList_0, sent_in_t
 
     # plot sequence for pcap 0
     plot_until = index_plot_until(sent_in_timeList_0, plot_until_second)
+
     plt.plot(sent_in_timeList_0[:plot_until], sent_in_pList_0[:plot_until], 'o', markerfacecolor="#fb9a99",
              markeredgewidth=3,
              markersize=15, alpha=0.1,
@@ -298,9 +312,9 @@ def plot_seq_throughput_over_time(sent_in_timeList_0, sent_in_pList_0, sent_in_t
 
     plt.legend(loc="upper right", markerscale=2, fontsize=10)
     # ax2.legend(loc='upper right', markerscale=2, fontsize=20)
-    plt.xlabel('time (s)')
     plt.ylabel('sequence number')
     plt.title(plot_title)
+    plt.xlim((0, plot_until_second))
 
     # for ax in [ax1]:
     #     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
@@ -329,7 +343,7 @@ def plot_test(pcap_file_0, pcap_file_1, label_0, label_1, plot_until_time):
 
     plot_seq_throughput_over_time(sent_in_timeList_0, sent_in_pList_0, sent_in_timeList_1, sent_in_pList_1,
                        sent_ret_timeList_0, sent_ret_pList_0, sent_ret_timeList_1, sent_ret_pList_1,
-                       ack_all_pList_0, ack_all_timeList_0, ack_all_pList_1, ack_all_timeList_1, "./", label_0, label_1, plot_until_time, plot_title=plot_title)
+                       ack_all_timeList_0, ack_all_pList_0, ack_all_timeList_1, ack_all_pList_1, "./", label_0, label_1, plot_until_time, plot_title=plot_title)
 
     return True
 
