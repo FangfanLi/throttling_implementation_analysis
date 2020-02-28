@@ -21,7 +21,7 @@ import glob
 import subprocess
 
 
-def get_true_positive_tests(true_positive_dir, trace_analysis_dir, wehe_record_dir, num_true_positive=100):
+def get_true_positive_tests(true_positive_dir, trace_analysis_dir, wehe_record_dir, threshold=100):
     true_positive_per_carrier = []
     for true_positive_file in os.listdir(true_positive_dir):
         cnt_true_positive_per_carrier_replay = 0
@@ -35,7 +35,7 @@ def get_true_positive_tests(true_positive_dir, trace_analysis_dir, wehe_record_d
                 continue
             true_positive_per_carrier.append(true_positive_test["uniqueTestID"])
             cnt_true_positive_per_carrier_replay += 1
-            if cnt_true_positive_per_carrier_replay > num_true_positive:
+            if cnt_true_positive_per_carrier_replay > threshold:
                 break
 
     return true_positive_per_carrier
@@ -152,10 +152,10 @@ def main():
         analysis_result_dir = sys.argv[1]
         wehe_record_dir = sys.argv[2]
         trace_analysis_dir = sys.argv[3]
-        num_true_positive = int(sys.argv[4])
+        threshold = int(sys.argv[4])
     except:
         print(
-            '\r\n Please provide the following four inputs: [analysis_result_dir] [wehe_record_dir] [trace_analysis_dir] [num_true_positive_per_carrier_replay]')
+            '\r\n Please provide the following four inputs: [analysis_result_dir] [wehe_record_dir] [trace_analysis_dir] [threshold_per_carrier_replay]')
         sys.exit()
 
     if not os.path.isdir(trace_analysis_dir):
@@ -172,7 +172,7 @@ def main():
             continue
 
         all_true_positive_ids += get_true_positive_tests(true_positive_dir, trace_analysis_dir, wehe_record_dir,
-                                                         num_true_positive)
+                                                         threshold)
 
     copy_test_files(all_true_positive_ids, trace_analysis_dir, wehe_record_dir)
 
