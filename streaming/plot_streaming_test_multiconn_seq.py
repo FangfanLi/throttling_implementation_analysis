@@ -53,7 +53,7 @@ FIVE_QUALITY_COLOR = ["#eff3ff", "#bdd7e7", "#6baed6", "#3182bd", "#08519c"]
 def sort_quality_change(video_qualities):
     quality_change = {}
 
-    current_start_timestamp = 0
+    current_start_timestamp = video_qualities[0][1]
     current_quality = video_qualities[0][0]
     for video_quality_sample in video_qualities:
         if video_quality_sample[0] != current_quality:
@@ -251,7 +251,11 @@ def parse_video_stat(video_stat):
     average_throughputs = []
     initial_ts = video_stat[0]["timestamp"]
 
-    prev_time = initial_ts / 1000
+    buffering_time = 0
+    playing_time = 0
+
+    # prev_time = initial_ts / 1000
+    prev_time = video_stat[0]["currentTime"]
     for stat in video_stat:
         quality = stat["quality"]
         if not stat["buffered"]:
@@ -263,13 +267,22 @@ def parse_video_stat(video_stat):
         current_playtime = stat["currentTime"]
         buffered = buffered_until - current_playtime
         estimated_bandwidth = stat["bandwidth"]
-        prev_time = current_playtime
         average_throughput = stat["throughput"]
+
+        if current_playtime - prev_time < 0.4:
+            buffering_time += (0.5 - (current_playtime - prev_time))
+        else:
+            playing_time += (current_playtime - prev_time)
+            # only consider buffered seconds if video is actually playing
+            seconds_buffered.append((buffered, current_time))
+            video_qualities.append((quality, current_time))
+
+        prev_time = current_playtime
 
         estimated_bandwidths.append((estimated_bandwidth, current_time))
         average_throughputs.append((average_throughput, current_time))
-        seconds_buffered.append((buffered, current_time))
-        video_qualities.append((quality, current_time))
+        # seconds_buffered.append((buffered, current_time))
+        # video_qualities.append((quality, current_time))
 
     return seconds_buffered, video_qualities, estimated_bandwidths, average_throughputs
 

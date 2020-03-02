@@ -40,13 +40,14 @@ def get_video_stat(video_stat):
             playing_time += (current_playtime - prev_time)
             # only consider buffered seconds if video is actually playing
             seconds_buffered.append(buffered)
+            video_qualities.append(quality)
 
         prev_time = current_playtime
         average_throughput = stat["throughput"]
 
         estimated_bandwidths.append(estimated_bandwidth)
         average_throughputs.append(average_throughput)
-        video_qualities.append(quality)
+        # video_qualities.append(quality)
 
     return seconds_buffered, video_qualities, estimated_bandwidths, average_throughputs, quality_oscillation, buffering_time, playing_time
 
