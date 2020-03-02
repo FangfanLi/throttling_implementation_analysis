@@ -51,6 +51,8 @@ FIVE_QUALITY_COLOR = ["#eff3ff", "#bdd7e7", "#6baed6", "#3182bd", "#08519c"]
 
 
 def sort_quality_change(video_qualities):
+    if not video_qualities:
+        return [], []
     quality_change = {}
 
     current_start_timestamp = video_qualities[0][1]
@@ -97,14 +99,15 @@ def plot_bufferedbytes_quality(video_qualities, seconds_buffered, plot_until_tim
         seconds_buffered_x.append(buffered[1])
     plt.plot(seconds_buffered_x, seconds_buffered_y)
 
-    mymap = matplotlib.colors.ListedColormap(quality_colors)
-    Z = [[0, 0], [0, 0]]
-    min, max = (0, len(quality_colors))
-    step = 1
-    levels = range(min, max + step, step)
-    CS3 = plt.contourf(Z, levels, cmap=mymap)
-    cbar = plt.colorbar(CS3, orientation="horizontal", pad=0.4)
-    cbar.ax.set_xticklabels(sorted_quality_change_keys)
+    if quality_colors:
+        mymap = matplotlib.colors.ListedColormap(quality_colors)
+        Z = [[0, 0], [0, 0]]
+        min, max = (0, len(quality_colors))
+        step = 1
+        levels = range(min, max + step, step)
+        CS3 = plt.contourf(Z, levels, cmap=mymap)
+        cbar = plt.colorbar(CS3, orientation="horizontal", pad=0.4)
+        cbar.ax.set_xticklabels(sorted_quality_change_keys)
 
     plt.ylabel('buffered (s)')
     plt.xlabel('time (s)')
@@ -364,12 +367,16 @@ def get_goodput_from_bytes(bytes, timestamps, client_sampling_interval):
 def do_all_plots(pcap0, pcap1, label0, label1, video_stat):
     seconds_buffered, video_qualities, estimated_bandwidths, average_throughputs = parse_video_stat(video_stat)
 
+    last_playing_time = 0
+    if seconds_buffered:
+        last_playing_time = seconds_buffered[-1][1]
+
     plt.subplot(3, 1, 1)
 
     seq_re_0, timestamps_re_0, seq_in_0, timestamps_in_0, bytes_in_0, seq_re_1, timestamps_re_1, seq_in_1, timestamps_in_1, bytes_in_1 = load_packet_info(
         pcap0, pcap1)
 
-    plot_until_time = max(seconds_buffered[-1][1], timestamps_in_0[-1], timestamps_in_1[-1])
+    plot_until_time = max(last_playing_time, timestamps_in_0[-1], timestamps_in_1[-1])
 
     plot_title = plot_test(seq_re_0, timestamps_re_0, seq_in_0, timestamps_in_0,
                            seq_re_1, timestamps_re_1, seq_in_1, timestamps_in_1, label0, label1,

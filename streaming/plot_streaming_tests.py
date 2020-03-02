@@ -8,6 +8,7 @@ def plot_streaming_tests(stat_dir):
 
     for file in os.listdir(stat_dir):
         if ".json" in file:
+            # print(file)
             filename = file.split(".")[0]
             carrier = filename.split("_")[0]
             test_num = filename.split("_")[1]
