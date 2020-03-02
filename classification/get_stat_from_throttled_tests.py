@@ -759,7 +759,6 @@ def plot_throughput_distribution(client_tputs_original, server_tputs_original, p
     plt.ylabel('Number of samples')
     plt.title(plot_title)
 
-
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
                  ax.get_xticklabels() + ax.get_yticklabels()):
         item.set_fontsize(20)
