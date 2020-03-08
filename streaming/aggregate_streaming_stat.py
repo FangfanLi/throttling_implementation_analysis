@@ -129,7 +129,7 @@ def get_transport_stat(pcap_file):
     return len(seq_re), len(seq_in), gputs
 
 
-def get_video_quality_percentage(video_qualities):
+def get_video_quality_percentage(video_qualities, avg_playing_percentage):
     num_all_qualities = len(video_qualities)
     qualities_dic = {}
     for quality in video_qualities:
@@ -138,7 +138,8 @@ def get_video_quality_percentage(video_qualities):
         qualities_dic[quality] += 1
     quality_percentage = []
     for quality in qualities_dic:
-        quality_percentage.append((quality, qualities_dic[quality]/num_all_qualities))
+        quality_percentage.append((quality, avg_playing_percentage * qualities_dic[quality]/num_all_qualities))
+    quality_percentage.append(("stall", 1 - avg_playing_percentage))
 
     print(quality_percentage)
 
@@ -188,17 +189,21 @@ def aggregate_stat(raw_stat_dir):
                 num_in_server += num_in
                 gputs_server += gputs
 
+    avg_playing_time = statistics.mean(all_playing_time)
+    avg_buffering_time = statistics.mean(all_buffering_time)
+    avg_buffering_percentage = avg_buffering_time/(avg_buffering_time + avg_playing_time)
+    avg_playing_percentage = avg_playing_time/(avg_buffering_time + avg_playing_time)
     print("Application layer:")
-    get_video_quality_percentage(all_video_qualities)
+    get_video_quality_percentage(all_video_qualities, avg_playing_percentage)
     print("average seconds buffered:", statistics.mean(all_seconds_buffered))
     print("average estimated bandwidth:", statistics.mean(all_estimated_bandwidths))
-    print("average buffering_time:", statistics.mean(all_buffering_time))
-    print("average playing_time:", statistics.mean(all_playing_time))
+    print("average buffering percentage:", avg_buffering_percentage)
+    print("average playing_time:", avg_playing_percentage)
     print("average quality oscillations", statistics.mean(all_quality_oscillation))
 
     print("Transport layer:")
-    print("average loss rate client:", num_retrans_client/(num_retrans_client + num_in_client))
-    print("average loss rate server:", num_retrans_server / (num_retrans_server + num_in_server))
+    print("average loss rate client:", round(num_retrans_client/(num_retrans_client + num_in_client), 4))
+    print("average loss rate server:", round(num_retrans_server / (num_retrans_server + num_in_server), 4))
     print("average goodput client:", statistics.mean(gputs_client))
     print("average goodput server:", statistics.mean(gputs_server))
 
