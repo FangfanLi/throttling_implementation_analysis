@@ -47,7 +47,7 @@ QUALITY_BANDWIDTH = {
     "1440p": [8608823, 2898540],
     "2160p": [2898541, 9999999]
 }
-FIVE_QUALITY_COLOR = ["#eff3ff", "#bdd7e7", "#6baed6", "#3182bd", "#08519c"]
+FIVE_QUALITY_COLOR = ["#ffffe5", "#fff7bc", "#fee391", "#fec44f", "#fe9929"]
 
 
 def sort_quality_change(video_qualities):
@@ -84,7 +84,7 @@ def sort_quality_change(video_qualities):
 def plot_bufferedbytes_quality(video_qualities, seconds_buffered, plot_until_time):
     quality_change, sorted_quality_change_keys = sort_quality_change(video_qualities)
 
-    quality_colors = FIVE_QUALITY_COLOR[:len(sorted_quality_change_keys)]
+    quality_colors = FIVE_QUALITY_COLOR[-len(sorted_quality_change_keys):]
 
     quality_count = 0
     for quality in sorted_quality_change_keys:
@@ -307,7 +307,7 @@ def plot_bandwidth_throughput(estimated_bandwidths, average_throughputs, gputs_0
     average_throughputs, average_throughputs_ts = separate_timestamp_and_stat(average_throughputs)
 
     plot_until = index_plot_until(estimated_bandwidths_ts, plot_until_time)
-    plt.plot(estimated_bandwidths_ts[:plot_until], estimated_bandwidths[:plot_until], color="#fdae61", linewidth=2,
+    plt.plot(estimated_bandwidths_ts[:plot_until], estimated_bandwidths[:plot_until], color="#8c2d04", linewidth=2,
              label='Player estimated bandwidth')
 
     # plot_until = index_plot_until(average_throughputs_ts, plot_until_time)
@@ -315,10 +315,10 @@ def plot_bandwidth_throughput(estimated_bandwidths, average_throughputs, gputs_0
     #          label='Player throughputs')
 
     plot_until = index_plot_until(ts_0, plot_until_time)
-    plt.plot(ts_0[:plot_until], gputs_0[:plot_until], color="#b2abd2", linewidth=2,
+    plt.plot(ts_0[:plot_until], gputs_0[:plot_until], color="#e31a1c", linewidth=2,
              label='{} throughput'.format(label_0))
     plot_until = index_plot_until(ts_1, plot_until_time)
-    plt.plot(ts_1[:plot_until], gputs_1[:plot_until], color="#5e3c99", linewidth=2,
+    plt.plot(ts_1[:plot_until], gputs_1[:plot_until], color="#1f78b4", linewidth=2,
              label='{} throughput'.format(label_1))
 
     sorted_quality = []
@@ -326,7 +326,7 @@ def plot_bandwidth_throughput(estimated_bandwidths, average_throughputs, gputs_0
         if quality[0] not in sorted_quality:
             sorted_quality.append(quality[0])
     sorted_quality.sort()
-    quality_colors = FIVE_QUALITY_COLOR[:len(sorted_quality)]
+    quality_colors = FIVE_QUALITY_COLOR[-len(sorted_quality):]
 
     quality_count = 0
     for quality in sorted_quality:
