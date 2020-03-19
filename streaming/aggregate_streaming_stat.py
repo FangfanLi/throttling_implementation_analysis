@@ -4,6 +4,17 @@ import sys
 import json
 import statistics
 
+QUALITY_TO_BITRATE = {
+    "144p": 94963,
+    "240p": 217649,
+    "360p": 406270,
+    "480p": 750192,
+    "720p": 1538171,
+    "1080p": 2898541,
+    "1440p": 8608823,
+    "2160p": 2898541
+}
+
 
 def get_video_stat(video_stat):
     video_stat = json.load(open(video_stat, "r"))
@@ -11,45 +22,55 @@ def get_video_stat(video_stat):
     video_qualities = []
     seconds_buffered = []
     estimated_bandwidths = []
-    average_throughputs = []
+    playing_bitrates = []
     initial_ts = video_stat[0]["timestamp"]
 
     prev_time = video_stat[0]["currentTime"]
     prev_quality = video_stat[0]["quality"]
+    joining_time = 0
     buffering_time = 0
+    buffering_events = 0
     playing_time = 0
-    quality_oscillation = 0
+    num_quality_change = 0
+    instability_bitrate = 0
+    buffering = False
     for stat in video_stat:
-        quality = stat["quality"]
-        if quality != prev_quality:
-            quality_oscillation += 1
-        prev_quality = quality
-
         if not stat["buffered"]:
             buffered_until = 0
         else:
             buffered_until = stat["buffered"][0]["end"]
         current_ts = stat["timestamp"]
-        current_time = (current_ts - initial_ts) / 1000
         current_playtime = stat["currentTime"]
         buffered = buffered_until - current_playtime
         estimated_bandwidth = stat["bandwidth"]
         if current_playtime - prev_time < 0.4:
-            buffering_time += (0.5 - (current_playtime - prev_time))
+            if not prev_time:
+                joining_time = current_ts - initial_ts
+            else:
+                buffering_time += (0.5 - (current_playtime - prev_time))
+                if not buffering:
+                    buffering_events += 1
+                    buffering = True
         else:
+            buffering = False
+            quality = stat["quality"]
+            current_bitrate = QUALITY_TO_BITRATE[quality]
+            playing_bitrates.append(current_bitrate)
+            if quality != prev_quality:
+                prev_bitrate = QUALITY_TO_BITRATE[prev_quality]
+                instability_bitrate += abs(prev_bitrate - current_bitrate)
+                num_quality_change += 1
+            prev_quality = quality
             playing_time += (current_playtime - prev_time)
             # only consider buffered seconds if video is actually playing
             seconds_buffered.append(buffered)
             video_qualities.append(quality)
 
         prev_time = current_playtime
-        average_throughput = stat["throughput"]
 
         estimated_bandwidths.append(estimated_bandwidth)
-        average_throughputs.append(average_throughput)
-        # video_qualities.append(quality)
 
-    return seconds_buffered, video_qualities, estimated_bandwidths, average_throughputs, quality_oscillation, buffering_time, playing_time
+    return seconds_buffered, video_qualities, estimated_bandwidths, playing_bitrates, num_quality_change, instability_bitrate, joining_time, buffering_time, playing_time, buffering_events
 
 
 def get_pcap_seq_all_conns(pcapFile, server_port=None):
@@ -138,7 +159,7 @@ def get_video_quality_percentage(video_qualities, avg_playing_percentage):
         qualities_dic[quality] += 1
     quality_percentage = []
     for quality in qualities_dic:
-        quality_percentage.append((quality, avg_playing_percentage * qualities_dic[quality]/num_all_qualities))
+        quality_percentage.append((quality, avg_playing_percentage * qualities_dic[quality] / num_all_qualities))
     quality_percentage.append(("stall", 1 - avg_playing_percentage))
 
     print(quality_percentage)
@@ -148,10 +169,13 @@ def aggregate_stat(raw_stat_dir):
     all_seconds_buffered = []
     all_video_qualities = []
     all_estimated_bandwidths = []
-    all_average_throughputs = []
+    all_playing_bitrates = []
     all_quality_oscillation = []
+    all_instability = []
     all_buffering_time = []
+    all_buffering_events = []
     all_playing_time = []
+    all_joining_time = []
 
     num_retrans_client = 0
     num_in_client = 0
@@ -165,14 +189,21 @@ def aggregate_stat(raw_stat_dir):
         # get avg estimated throughput
         # get avg buffered time (time to play)
         if ".json" in file:
-            seconds_buffered, video_qualities, estimated_bandwidths, average_throughputs, quality_oscillation, buffering_time, playing_time = get_video_stat(
+            seconds_buffered, video_qualities, estimated_bandwidths, playing_bitrates, num_quality_change, instability_bitrate, joining_time, buffering_time, playing_time, buffering_events = get_video_stat(
                 "{}/{}".format(raw_stat_dir, file))
             all_seconds_buffered += seconds_buffered
             all_video_qualities += video_qualities
             all_estimated_bandwidths += estimated_bandwidths
+            all_playing_bitrates += playing_bitrates
             all_buffering_time.append(buffering_time)
+            all_buffering_events.append(buffering_events)
+            all_joining_time.append(joining_time)
             all_playing_time.append(playing_time)
-            all_quality_oscillation.append(quality_oscillation)
+            all_quality_oscillation.append(num_quality_change)
+            instability_score = 0
+            if num_quality_change:
+                instability_score = instability_bitrate / num_quality_change
+            all_instability.append(instability_score)
         # get loss rate
         # get throughput
         elif "out.pcap" in file:
@@ -191,18 +222,25 @@ def aggregate_stat(raw_stat_dir):
 
     avg_playing_time = statistics.mean(all_playing_time)
     avg_buffering_time = statistics.mean(all_buffering_time)
-    avg_buffering_percentage = avg_buffering_time/(avg_buffering_time + avg_playing_time)
-    avg_playing_percentage = avg_playing_time/(avg_buffering_time + avg_playing_time)
+    avg_joining_time = statistics.mean(all_joining_time)
+    avg_playing_bitrates = statistics.mean(all_playing_bitrates)
+    avg_buffering_percentage = avg_buffering_time / (avg_buffering_time + avg_playing_time)
+    avg_buffering_events = statistics.mean(all_buffering_events)
+    avg_playing_percentage = avg_playing_time / (avg_buffering_time + avg_playing_time)
     print("Application layer:")
     get_video_quality_percentage(all_video_qualities, avg_playing_percentage)
     print("average seconds buffered:", statistics.mean(all_seconds_buffered))
     print("average estimated bandwidth:", statistics.mean(all_estimated_bandwidths))
+    print("average playing bitrates:", avg_playing_bitrates)
+    print("average joining time:", avg_joining_time)
     print("average buffering percentage:", avg_buffering_percentage)
+    print("average buffering events:", avg_buffering_events)
     print("average playing_time:", avg_playing_percentage)
     print("average quality oscillations", statistics.mean(all_quality_oscillation))
+    print("average instability score", statistics.mean(all_instability))
 
     print("Transport layer:")
-    print("average loss rate client:", round(num_retrans_client/(num_retrans_client + num_in_client), 4))
+    print("average loss rate client:", round(num_retrans_client / (num_retrans_client + num_in_client), 4))
     print("average loss rate server:", round(num_retrans_server / (num_retrans_server + num_in_server), 4))
     print("average goodput client:", statistics.mean(gputs_client))
     print("average goodput server:", statistics.mean(gputs_server))
