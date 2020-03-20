@@ -183,6 +183,7 @@ def aggregate_stat(raw_stat_dir):
     num_in_server = 0
     gputs_client = []
     gputs_server = []
+    print(raw_stat_dir)
     for file in os.listdir(raw_stat_dir):
         # get avg buffering time / total time
         # get quality percentage during play time
@@ -226,26 +227,35 @@ def aggregate_stat(raw_stat_dir):
     avg_playing_bitrates = statistics.mean(all_playing_bitrates)
     avg_buffering_percentage = avg_buffering_time / (avg_buffering_time + avg_playing_time)
     avg_buffering_events = statistics.mean(all_buffering_events)
+    avg_seconds_buffered = statistics.mean(all_seconds_buffered)
+    avg_estimated_bandwidth = statistics.mean(all_estimated_bandwidths)
+    avg_quality_oscilations = statistics.mean(all_quality_oscillation)
+    avg_instability = statistics.mean(all_instability)
     avg_playing_percentage = avg_playing_time / (avg_buffering_time + avg_playing_time)
     print("Application layer:")
     get_video_quality_percentage(all_video_qualities, avg_playing_percentage)
-    print("average seconds buffered:", statistics.mean(all_seconds_buffered))
-    print("average estimated bandwidth:", statistics.mean(all_estimated_bandwidths))
+    print("average seconds buffered:", avg_seconds_buffered)
+    print("average estimated bandwidth:", avg_estimated_bandwidth)
     print("average playing bitrates:", avg_playing_bitrates)
     print("average joining time:", avg_joining_time)
     print("average buffering percentage:", avg_buffering_percentage)
     print("average buffering events:", avg_buffering_events)
     print("average playing_time:", avg_playing_percentage)
-    print("average quality oscillations", statistics.mean(all_quality_oscillation))
-    print("average instability score", statistics.mean(all_instability))
+    print("average quality oscillations", avg_quality_oscilations)
+    print("average instability score", avg_instability)
+
+    avg_loss_rate_client = round(num_retrans_client / (num_retrans_client + num_in_client), 4)
+    avg_loss_rate_server = round(num_retrans_server / (num_retrans_server + num_in_server), 4)
+    avg_gputs_client = statistics.mean(gputs_client)
+    avg_gputs_server = statistics.mean(gputs_server)
 
     print("Transport layer:")
-    print("average loss rate client:", round(num_retrans_client / (num_retrans_client + num_in_client), 4))
-    print("average loss rate server:", round(num_retrans_server / (num_retrans_server + num_in_server), 4))
-    print("average goodput client:", statistics.mean(gputs_client))
-    print("average goodput server:", statistics.mean(gputs_server))
+    print("average loss rate client:", avg_loss_rate_client)
+    print("average loss rate server:", avg_loss_rate_server)
+    print("average goodput client:", avg_gputs_client)
+    print("average goodput server:", avg_gputs_server)
 
-    return
+    return avg_joining_time, avg_playing_bitrates, avg_buffering_percentage, avg_buffering_events, avg_seconds_buffered, avg_estimated_bandwidth, avg_instability, avg_loss_rate_client, avg_loss_rate_server, avg_gputs_client, avg_gputs_server
 
 
 def main():
