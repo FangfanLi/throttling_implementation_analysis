@@ -17,7 +17,7 @@ def clean_streaming_pcap(pcap_dir, client_ip, server_ip, server_port):
             p = subprocess.call(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
-def clean_streaming_pcaps(pcap_dirs, client_ip, server_ip, server_port):
+def clean_streaming_pcaps(pcap_dirs, client_ip, server_ip, server_port, client_ip2=None):
     for pcap_dir in os.listdir(pcap_dirs):
         if "DS" in pcap_dir:
             continue
@@ -28,20 +28,26 @@ def clean_streaming_pcaps(pcap_dirs, client_ip, server_ip, server_port):
                 if "client" in filename:
                     filter = "port {} and net {}/24".format(server_port, server_ip)
                 else:
-                    filter = "port {} and net {}/24".format(server_port, client_ip)
+                    if client_ip2:
+                        filter = "port {} and net {}/24 or net {}/24".format(server_port, client_ip, client_ip2)
+                    else:
+                        filter = "port {} and net {}/24".format(server_port, client_ip)
                 command = ['tcpdump', '-r', "{}/{}".format(pcap_dir, file), '-w',
                        "{}/{}_out.pcap".format(pcap_dir, filename), filter]
                 p = subprocess.call(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 def main():
+    client_ip2 = None
     if len(sys.argv) == 5:
         script, pcap_dir, client_ip, server_ip, server_port = sys.argv
+    elif len(sys.argv) == 6:
+        script, pcap_dir, client_ip, client_ip2, server_ip, server_port = sys.argv
     else:
         print("\r\n example run: python3 clean_streaming_pcaps.py pcap_dir client_ip server_ip server_port")
         sys.exit(1)
 
-    clean_streaming_pcaps(pcap_dir, client_ip, server_ip, server_port)
+    clean_streaming_pcaps(pcap_dir, client_ip, server_ip, server_port, client_ip2)
 
 
 if __name__ == "__main__":

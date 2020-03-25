@@ -183,7 +183,6 @@ def aggregate_stat(raw_stat_dir):
     num_in_server = 0
     gputs_client = []
     gputs_server = []
-    print(raw_stat_dir)
     for file in os.listdir(raw_stat_dir):
         # get avg buffering time / total time
         # get quality percentage during play time
@@ -203,7 +202,7 @@ def aggregate_stat(raw_stat_dir):
             all_quality_oscillation.append(num_quality_change)
             instability_score = 0
             if num_quality_change:
-                instability_score = instability_bitrate / num_quality_change
+                instability_score = instability_bitrate / statistics.mean(playing_bitrates)
             all_instability.append(instability_score)
         # get loss rate
         # get throughput
