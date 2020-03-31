@@ -254,7 +254,7 @@ def aggregate_stat(raw_stat_dir):
     print("average goodput client:", avg_gputs_client)
     print("average goodput server:", avg_gputs_server)
 
-    return avg_joining_time, avg_playing_bitrates, avg_buffering_percentage, avg_buffering_events, avg_seconds_buffered, avg_estimated_bandwidth, avg_instability, avg_loss_rate_client, avg_loss_rate_server, avg_gputs_client, avg_gputs_server
+    return avg_joining_time, avg_playing_bitrates, avg_buffering_percentage, avg_buffering_events, avg_seconds_buffered, avg_estimated_bandwidth, avg_quality_oscilations, avg_instability, avg_loss_rate_client, avg_loss_rate_server, avg_gputs_client, avg_gputs_server
 
 
 def main():

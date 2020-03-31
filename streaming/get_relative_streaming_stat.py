@@ -13,11 +13,12 @@ STAT_NAME_TO_INDEX = {
     "avg_buffering_events" : 3,
     "avg_seconds_buffered" : 4,
     "avg_estimated_bandwidth" : 5,
-    "avg_instability" : 6,
-    "avg_loss_rate_client" : 7,
-    "avg_loss_rate_server" : 8,
-    "avg_gputs_client" : 9,
-    "avg_gputs_server" : 10
+    "avg_quality_oscilations" : 6,
+    "avg_instability" : 7,
+    "avg_loss_rate_client" : 8,
+    "avg_loss_rate_server" : 9,
+    "avg_gputs_client" : 10,
+    "avg_gputs_server" : 11
 }
 
 TEST_SET_TO_PLOT_INDEX = {
@@ -114,7 +115,7 @@ TEST_SET_TO_PLOT_INDEX = {
 }
 
 
-def plot_relative_diff(relative_diff_per_testset, file_dir, plot_title):
+def plot_relative_diff(relative_diff_per_testset, baseline_stat, file_dir, plot_title):
     fig, ax = plt.subplots(figsize=(16, 6), dpi=400)
 
     rec_size = 0.1
@@ -138,10 +139,10 @@ def plot_relative_diff(relative_diff_per_testset, file_dir, plot_title):
     sm = plt.cm.ScalarMappable(cmap=plt.get_cmap('coolwarm'))
     sm._A = []
     cbar = fig.colorbar(sm, ticks=[0, 0.5, 1], orientation='vertical', pad=0.03, shrink=1)
-    cbar.ax.set_yticklabels(['< -1', '0', '> 1'])
+    cbar.ax.set_yticklabels(['< - 100%', round(baseline_stat, 3), '> + 100%'])
     ax.set_xlim([0, 1.8])
     ax.set_ylim([0, 0.5])
-    plt.title("cubic                                           |                                             bbr")
+    plt.title("cubic                                            |                                              bbr")
     plt.savefig(file_dir + '/' + plot_title + '.png', bbox_inches='tight')
 
 
@@ -166,13 +167,14 @@ def main():
         for one_test_set in os.listdir(all_tests_dir):
             if ".DS" in one_test_set:
                continue
+            print("one test set", one_test_set)
             one_test_set_dir = "{}/{}".format(all_tests_dir, one_test_set)
             streaming_stats = ass.aggregate_stat(
                 one_test_set_dir)
             all_stats[one_test_set] = streaming_stats
 
             # avg_joining_time, avg_playing_bitrates, avg_buffering_percentage, avg_buffering_events, avg_seconds_buffered,
-            # avg_estimated_bandwidth, avg_instability, avg_loss_rate_client, avg_loss_rate_server, avg_gputs_client, avg_gputs_server
+            # avg_estimated_bandwidth, avg_quality_oscilations, avg_instability, avg_loss_rate_client, avg_loss_rate_server, avg_gputs_client, avg_gputs_server
 
         json.dump(all_stats, open("{}.json".format(stat_set), "w"))
 
@@ -193,9 +195,9 @@ def main():
             else:
                 relative_diff = (interested_stat - baseline_stat)/baseline_stat
             relative_diff_per_testset[one_test_set] = relative_diff
-            print("{} {} {}".format(one_test_set, interested_stat, relative_diff))
+            # print("{} {} {}".format(one_test_set, interested_stat, relative_diff))
 
-        plot_relative_diff(relative_diff_per_testset, "./", "{}_{}".format(stat_set, stat))
+        plot_relative_diff(relative_diff_per_testset, baseline_stat, "./", "{}_{}".format(stat_set, stat))
 
 
 if __name__ == "__main__":

@@ -24,12 +24,15 @@ def clean_streaming_pcaps(pcap_dirs, client_ip, server_ip, server_port, client_i
         pcap_dir = "{}/{}".format(pcap_dirs, pcap_dir)
         for file in os.listdir(pcap_dir):
             if ".pcap" in file:
+            # if "out.pcap" in file:
                 filename = file.split(".pcap")[0]
+                # rmcomman = ['rm', "{}/{}.pcap".format(pcap_dir, filename)]
+                # p = subprocess.call(rmcomman, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 if "client" in filename:
                     filter = "port {} and net {}/24".format(server_port, server_ip)
                 else:
                     if client_ip2:
-                        filter = "port {} and net {}/24 or net {}/24".format(server_port, client_ip, client_ip2)
+                        filter = "port {} and net {}/16 or net {}/16".format(server_port, client_ip, client_ip2)
                     else:
                         filter = "port {} and net {}/24".format(server_port, client_ip)
                 command = ['tcpdump', '-r', "{}/{}".format(pcap_dir, file), '-w',
