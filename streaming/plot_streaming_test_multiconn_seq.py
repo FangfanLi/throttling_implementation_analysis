@@ -315,10 +315,10 @@ def plot_bandwidth_throughput(estimated_bandwidths, average_throughputs, gputs_0
     #          label='Player throughputs')
 
     plot_until = index_plot_until(ts_0, plot_until_time)
-    plt.plot(ts_0[:plot_until], gputs_0[:plot_until], color="#e31a1c", linewidth=2,
+    plt.plot(ts_0[:plot_until], gputs_0[:plot_until], color="#e31a1c", linewidth=2, alpha=0.2,
              label='{} throughput'.format(label_0))
     plot_until = index_plot_until(ts_1, plot_until_time)
-    plt.plot(ts_1[:plot_until], gputs_1[:plot_until], color="#1f78b4", linewidth=2,
+    plt.plot(ts_1[:plot_until], gputs_1[:plot_until], color="#1f78b4", linewidth=2, alpha=0.2,
              label='{} throughput'.format(label_1))
 
     sorted_quality = []

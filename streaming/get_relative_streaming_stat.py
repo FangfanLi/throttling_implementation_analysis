@@ -195,7 +195,7 @@ def main():
             else:
                 relative_diff = (interested_stat - baseline_stat)/baseline_stat
             relative_diff_per_testset[one_test_set] = relative_diff
-            # print("{} {} {}".format(one_test_set, interested_stat, relative_diff))
+            print("{} {} {}".format(one_test_set, interested_stat, relative_diff))
 
         plot_relative_diff(relative_diff_per_testset, baseline_stat, "./", "{}_{}".format(stat_set, stat))
 
