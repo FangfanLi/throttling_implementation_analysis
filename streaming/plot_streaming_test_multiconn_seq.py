@@ -376,7 +376,7 @@ def do_all_plots(pcap0, pcap1, label0, label1, video_stat):
     seq_re_0, timestamps_re_0, seq_in_0, timestamps_in_0, bytes_in_0, seq_re_1, timestamps_re_1, seq_in_1, timestamps_in_1, bytes_in_1 = load_packet_info(
         pcap0, pcap1)
 
-    plot_until_time = max(last_playing_time, timestamps_in_0[-1], timestamps_in_1[-1])
+    plot_until_time = max(last_playing_time, timestamps_in_0[-1], timestamps_in_1[-1], 60)
 
     plot_title = plot_test(seq_re_0, timestamps_re_0, seq_in_0, timestamps_in_0,
                            seq_re_1, timestamps_re_1, seq_in_1, timestamps_in_1, label0, label1,
