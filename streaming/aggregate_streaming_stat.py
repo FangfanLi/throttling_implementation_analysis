@@ -42,7 +42,7 @@ def get_video_stat(video_stat):
         current_ts = stat["timestamp"]
         current_playtime = stat["currentTime"]
         buffered = buffered_until - current_playtime
-        estimated_bandwidth = stat["bandwidth"]
+        estimated_bandwidth = stat["systemBandwidth"]
         if current_playtime - prev_time < 0.4:
             if not prev_time:
                 joining_time = current_ts - initial_ts
