@@ -94,7 +94,7 @@ def main():
     X, y = read_tests(plots_directory)
 
     trained_model = SVC(gamma='auto', probability=True)
-    probability_threshold = 0.5
+    probability_threshold = 0.7
 
     score_all = []
     # random_state = random.randint(0, 100)

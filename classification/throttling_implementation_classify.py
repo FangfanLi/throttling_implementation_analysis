@@ -205,7 +205,7 @@ def main():
             "\r\n Please provide the following input: [test_stat]")
         sys.exit()
 
-    predict_probability_threshold = 0.5
+    predict_probability_threshold = 0.7
     filename = "trained_model.sav"
     trained_model = pickle.load(open(filename, "rb"))
 
