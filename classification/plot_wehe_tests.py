@@ -865,7 +865,7 @@ def plot_seq_throughput_over_time(sent_in_timeList_original, sent_in_pList_origi
     plt.close()
 
 
-def plot_test(replayInfo, mobileStats, client_dir, result_directory):
+def plot_test(replayInfo, mobileStats, client_dir, result_directory, classification_label):
     appName, replayName = updateReplayName(replayInfo[4])
 
     # server_port is appName specific
@@ -923,10 +923,10 @@ def plot_test(replayInfo, mobileStats, client_dir, result_directory):
     loss_rate_original = round(sent_r_count_original / sent_a_count_original, 5)
     loss_rate_inverted = round(sent_r_count_inverted / sent_a_count_inverted, 5)
 
-    plot_title = "{}--{}--{}--{}--{}--{}--{}--{}--{}".format(userID, historyCount, replayName, avg_client_tputs_original,
+    plot_title = "{}--{}--{}--{}--{}--{}--{}--{}--{}--classified-{}".format(userID, historyCount, replayName, avg_client_tputs_original,
                                                       avg_server_tputs_original, stdev_client_tputs_original,
                                                       stdev_server_tputs_original, loss_rate_original,
-                                                      loss_rate_inverted)
+                                                      loss_rate_inverted, classification_label)
 
     plot_throughput_distribution(client_tputs_original, server_tputs_original, result_carrier_directory, plot_title=plot_title)
 
@@ -1022,7 +1022,7 @@ def plot_tests_in_data_dir(data_directory, result_directory, num_plots):
                 continue
 
 
-def plot_one_test(data_directory, result_directory, plot_clientID, plot_historyCount):
+def plot_one_test(data_directory, plot_directory, plot_clientID, plot_historyCount, classification_label):
 
     client_dir = data_directory + '/' + plot_clientID
     replayinfo_dir = client_dir + '/replayInfo/'
@@ -1045,7 +1045,7 @@ def plot_one_test(data_directory, result_directory, plot_clientID, plot_historyC
         if not mobileStats:
             continue
 
-        test_stat = plot_test(replayInfo, mobileStats, client_dir, result_directory)
+        test_stat = plot_test(replayInfo, mobileStats, client_dir, plot_directory, classification_label)
 
     return True
 
@@ -1079,12 +1079,13 @@ def main():
     if tests_to_plot:
         for ISP in tests_to_plot:
             for replay in tests_to_plot[ISP]:
-                for testID in tests_to_plot[ISP][replay]:
-                    clientID = testID.split("_")[0]
-                    historyCount = testID.split("_")[1]
-                    plot_one_test(data_directory, plot_directory, clientID, historyCount)
-
-    plot_tests_in_data_dir(data_directory, plot_directory, num_plots)
+                for classification_label in tests_to_plot[ISP][replay]:
+                    for testID in tests_to_plot[ISP][replay][classification_label]:
+                        clientID = testID.split("_")[0]
+                        historyCount = testID.split("_")[1]
+                        plot_one_test(data_directory, plot_directory, clientID, historyCount, classification_label)
+    else:
+        plot_tests_in_data_dir(data_directory, plot_directory, num_plots)
 
 
 if __name__ == "__main__":
