@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset=utf-8/>
+    <title>Streaming Test</title>
+
+    <link href="https://unpkg.com/video.js/dist/video-js.css" rel="stylesheet">
+
+    <style>
+    #download {
+      background-color: inherit;
+      padding: 14px 28px;
+      font-size: 16px;
+      cursor: pointer;
+      display: inline-block;
+    }
+
+    .wrapper {
+      padding-top: 20px;
+    }
+
+    .info span {
+      font-size: 24px;
+    }
+
+    </style>
+</head>
+
+<body>
+<h1>Video Stream Test 📼</h1>
+<div class="info">
+    <button id="download" onclick="downloadStats()">Download Stats</button>
+    <span id="stat-counter">0</span>
+    <span>segments recorded,</span>
+    <span id='bandwidth'>0</span>
+    <span>Mbps bandwidth,</span>
+    <span id='throughput'>0</span>
+    <span>Mbps throughput,</span>
+    <span id='system-bandwidth'>0</span>
+    <span>Mbps system bandwidth,</span>
+
+    <span id='quality'>No Track Active</span>
+</div>
+
+
+<div class="wrapper">
+    <div class="videocontent">
+        <video-js id="my_video_1" class="vjs-default-skin vjs-16-9 vjs-big-play-centered" controls preload="none"
+                  data-setup='{"fluid": true}'>
+        </video-js>
+    </div>
+</div>
+
+
+<script src="https://unpkg.com/video.js/dist/video.js"></script>
+<script src="https://unpkg.com/videojs-bitrate-graph@0.2.1/dist/videojs-bitrate-graph.min.js"></script>
+<script
+        src="https://unpkg.com/videojs-contrib-quality-levels@2.0.9/dist/videojs-contrib-quality-levels.min.js"></script>
+<script src="https://unpkg.com/videojs-hls-quality-selector@1.1.0/dist/videojs-hls-quality-selector.min.js"></script>
+<script>
+    var player = videojs('my_video_1');
+    let statInterval = 0.5 * 1000;
+    player.src({
+      src: '/mp4/final.mpd',
+      type: 'application/dash+xml',
+      enableLowInitialPlaylist: true,
+      smoothQualityChange: true,
+    })
+    player.hlsQualitySelector({
+      displayCurrentQuality: true,
+    });
+
+    const tech = player.tech();
+
+    let allStats = [];
+    monitorStats();
+
+    let lastTime = 0;
+
+    let tracks = player.textTracks();
+    let segmentMetadataTrack;
+
+    function monitorStats() {
+      setInterval(() => {
+        if (!tech.hls) {
+          return
+        }
+
+        if (player.paused()) {
+          return;
+        }
+
+        const stats = tech.hls.stats;
+        const myStats = {};
+
+        for (let [key, value] of Object.entries(stats)) {
+          if (key === 'master') continue;
+          if (key === 'videoPlaybackQuality') continue;
+          if (key === 'currentSource') continue;
+          myStats[key] = value;
+        }
+        let currentTime = myStats.currentTime;
+        myStats.potentialBuffering = currentTime === lastTime;
+        lastTime = currentTime;
+
+        let quality = tech.hls.playlists.media().attributes.RESOLUTION.height + 'p';
+        myStats.quality = quality;
+
+        myStats.systemBandwidth = tech.hls.systemBandwidth;
+        myStats.throughput = tech.hls.throughput/1000;
+        myStats.corruptedVideoFrames = stats.videoPlaybackQuality.corruptedVideoFrames;
+        myStats.droppedVideoFrames = stats.videoPlaybackQuality.droppedVideoFrames;
+        myStats.totalVideoFrames = stats.videoPlaybackQuality.totalVideoFrames;
+        allStats.push(myStats);
+        document.getElementById("stat-counter").textContent = allStats.length;
+        let converter = 1000000;
+        document.getElementById("bandwidth").textContent = myStats.bandwidth / converter;
+        document.getElementById("throughput").textContent = Math.round(myStats.throughput / converter);
+        document.getElementById("system-bandwidth").textContent = Math.round(myStats.systemBandwidth / converter);
+        document.getElementById('quality').textContent = myStats.quality;
+
+      }, statInterval);
+    }
+
+    function downloadStats() {
+      let d = new Date();
+      let day = d.getDate();
+      let month = d.getMonth() + 1;
+      let year = d.getFullYear();
+      let hour = d.getHours();
+      let minute = d.getMinutes();
+      let filename = "stream-stats-" + month + '-' + day + '-' + hour + '.' + minute + '.json';
+      download(filename, JSON.stringify(allStats));
+    }
+    function download(filename, text) {
+      var element = document.createElement('a');
+      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+      element.setAttribute('download', filename);
+
+      element.style.display = 'none';
+      document.body.appendChild(element);
+
+      element.click();
+
+      document.body.removeChild(element);
+    }
+
+</script>
+
+</body>
+
+</html>

@@ -1,0 +1,48 @@
+
+
+<?xml version="1.0" encoding="UTF-8"?>
+<MPD xmlns="urn:mpeg:DASH:schema:MPD:2011" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:mpeg:DASH:schema:MPD:2011" type="static" mediaPresentationDuration="PT1776.34S" minBufferTime="PT1S" profiles="urn:webm:dash:profile:webm-on-demand:2012">
+   <Period id="0" start="PT0S" duration="PT1776.34S">
+      <AdaptationSet id="0" mimeType="video/webm" codecs="vp9" lang="eng" bitstreamSwitching="true" subsegmentAlignment="false" subsegmentStartsWithSAP="1">
+         <Representation id="1" bandwidth="217648" width="426" height="240">
+            <BaseURL>video240p.webm</BaseURL>
+            <SegmentBase indexRange="219-6254">
+               <Initialization range="0-218" />
+            </SegmentBase>
+         </Representation>
+         <Representation id="2" bandwidth="406269" width="640" height="360">
+            <BaseURL>video360p.webm</BaseURL>
+            <SegmentBase indexRange="220-6331">
+               <Initialization range="0-219" />
+            </SegmentBase>
+         </Representation>
+         <Representation id="3" bandwidth="750191" width="854" height="480">
+            <BaseURL>video480p.webm</BaseURL>
+            <SegmentBase indexRange="220-6385">
+               <Initialization range="0-219" />
+            </SegmentBase>
+         </Representation>
+      </AdaptationSet>
+      <AdaptationSet id="1" mimeType="audio/webm" codecs="opus" lang="eng" audioSamplingRate="48000" bitstreamSwitching="true" subsegmentAlignment="true" subsegmentStartsWithSAP="1">
+         <Representation id="8" bandwidth="58691">
+            <BaseURL>audioLow.webm</BaseURL>
+            <SegmentBase indexRange="259-3281">
+               <Initialization range="0-258" />
+            </SegmentBase>
+         </Representation>
+         <Representation id="9" bandwidth="78938">
+            <BaseURL>audioMedium.webm</BaseURL>
+            <SegmentBase indexRange="259-3281">
+               <Initialization range="0-258" />
+            </SegmentBase>
+         </Representation>
+         <Representation id="10" bandwidth="58691">
+            <BaseURL>audioHigh.webm</BaseURL>
+            <SegmentBase indexRange="259-3281">
+               <Initialization range="0-258" />
+            </SegmentBase>
+         </Representation>
+      </AdaptationSet>
+   </Period>
+</MPD>
+
