@@ -136,6 +136,13 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
+def enable_download_in_headless_chrome(driver, download_dir):
+    # add missing support for chrome "send_command"  to selenium webdriver
+    driver.command_executor._commands["send_command"] = ("POST", '/session/$sessionId/chromium/send_command')
+
+    params = {'cmd': 'Page.setDownloadBehavior', 'params': {'behavior': 'allow', 'downloadPath': download_dir}}
+    command_result = driver.execute("send_command", params)
+
 def parseInputs(parser):
     parser.add_argument('--network',
                         help='the network being tested (e.g., WiFi, Verizon)', required=True)
@@ -150,7 +157,7 @@ def parseInputs(parser):
     parser.add_argument('--watermark',
                         help='the high water mark', default="30")
     parser.add_argument('--results_dir',
-                        help='the location to save results', default='./')
+                        help='the location to save results', default='/Users/neufan/Project/throttling_implementation_analysis/video_player/')
     parser.add_argument('--stoptime', type=int,
                         help='the playing time for each video, default 60', default=60)
     parser.add_argument('--rounds', type=int,
@@ -186,14 +193,15 @@ def main():
         os.mkdir(results_dir)
 
     chrome_options = webdriver.ChromeOptions()
-    # chrome_options.add_argument('headless')
-    # chrome_options.add_argument("--incognito")
+    chrome_options.add_argument('headless')
+    chrome_options.add_argument("--incognito")
     prefs = {}
 
     prefs["profile.default_content_settings.popups"] = 0
     prefs["download.default_directory"] = results_dir
     chrome_options.add_experimental_option("prefs", prefs)
     driver = webdriver.Chrome('/Users/neufan/Downloads/chromedriver', chrome_options=chrome_options)
+    enable_download_in_headless_chrome(driver, results_dir)
 
     for i in range(rounds):
         print('\t'.join(map(str, [i, network, maxquality, cc, headroom, cwnd, watermark])))
@@ -201,6 +209,7 @@ def main():
         time.sleep(3)
         driver.close()
         driver = webdriver.Chrome('/Users/neufan/Downloads/chromedriver', chrome_options=chrome_options)
+        enable_download_in_headless_chrome(driver, results_dir)
 
     if driver:
         driver.quit()

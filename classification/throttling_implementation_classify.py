@@ -209,6 +209,9 @@ def main():
     filename = "trained_model.sav"
     trained_model = pickle.load(open(filename, "rb"))
 
+    wehe_agg_results = json.load(open("weheStat.json", "r"))
+    all_throttling_cases = wehe_agg_results["allThrottlingCases"]
+
     test_stat = json.load(open(test_stat, "r"))
 
     classification_results_ISP = {}
@@ -222,9 +225,18 @@ def main():
     count_tests_ISP = {}
     count_tests_ISP_replay = {}
 
+    tests_for_plotting = {}
+
     for ISP_replay in test_stat:
+        ISP_replay_replaced = ISP_replay.replace(")_", ")-")
+        if ISP_replay_replaced not in all_throttling_cases.keys():
+            continue
         test_stat_ISP_replay = []
         unique_test_ids = []
+
+        ISP = ISP_replay.split(")_")[0]
+        replayName = ISP_replay.split(")_")[1]
+
         for uniqTestID in test_stat[ISP_replay]:
             # [avg_client_tputs_original, avg_server_tputs_original, stdev_client_tputs_original,
             #  stdev_server_tputs_original, loss_rate_original, loss_rate_inverted]
@@ -243,9 +255,6 @@ def main():
             unique_test_ids.append(uniqTestID)
 
         classification_results = trained_model.predict_proba(test_stat_ISP_replay)
-
-        ISP = ISP_replay.split(")_")[0]
-        replayName = ISP_replay.split(")_")[1]
 
         if ISP_replay not in classification_results_ISP_replay:
             classification_results_ISP_replay[ISP_replay] = {}
@@ -285,6 +294,15 @@ def main():
             classification_results_ISP_replay[ISP_replay][classification_label] += 1
             classification_results_ISP[ISP][classification_label] += 1
 
+            if "ATT (cellular" in ISP:
+                if ISP not in tests_for_plotting:
+                    tests_for_plotting[ISP] = {}
+                if replayName not in tests_for_plotting[ISP]:
+                    tests_for_plotting[ISP][replayName] = {}
+                if classification_label not in tests_for_plotting[ISP][replayName]:
+                    tests_for_plotting[ISP][replayName][classification_label] = []
+                tests_for_plotting[ISP][replayName][classification_label].append(uniqTestID)
+
             # count the number of cases of each classification
             # what is the percentage of tests of ISP and ISP-replay that is of this classification
             if classification_label not in classification_label_percentage:
@@ -315,6 +333,7 @@ def main():
     json.dump(unknown_test_ids, open("unknown_test_ids.json", "w"))
     json.dump(classification_results_ISP, open("classification_results_ISP.json", "w"))
     json.dump(classification_results_ISP_replay, open("classification_results_ISP_replay.json", "w"))
+    json.dump(tests_for_plotting, open("tests_for_plotting.json", "w"))
 
 
 if __name__ == "__main__":

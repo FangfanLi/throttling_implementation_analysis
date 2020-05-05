@@ -814,17 +814,17 @@ def plot_seq_throughput_over_time(sent_in_timeList_original, sent_in_pList_origi
              markeredgecolor="none", label='Inverted first trans')
 
     # plot ACKs
-    plot_until = index_plot_until(ack_all_timeList_original, plot_until_second)
-    ax1.plot(ack_all_timeList_original[:plot_until], ack_all_pList_original[:plot_until], '.', markerfacecolor="#490B04",
-             markeredgewidth=3,
-             markersize=10, alpha=1,
-             markeredgecolor="none", label='Original acks')
-
-    plot_until = index_plot_until(ack_all_timeList_inverted, plot_until_second)
-    ax1.plot(ack_all_timeList_inverted[:plot_until], ack_all_pList_inverted[:plot_until], '.', markerfacecolor="#2E347C",
-             markeredgewidth=3,
-             markersize=10, alpha=1,
-             markeredgecolor="none", label='Original acks')
+    # plot_until = index_plot_until(ack_all_timeList_original, plot_until_second)
+    # ax1.plot(ack_all_timeList_original[:plot_until], ack_all_pList_original[:plot_until], '.', markerfacecolor="#490B04",
+    #          markeredgewidth=3,
+    #          markersize=10, alpha=1,
+    #          markeredgecolor="none", label='Original acks')
+    #
+    # plot_until = index_plot_until(ack_all_timeList_inverted, plot_until_second)
+    # ax1.plot(ack_all_timeList_inverted[:plot_until], ack_all_pList_inverted[:plot_until], '.', markerfacecolor="#2E347C",
+    #          markeredgewidth=3,
+    #          markersize=10, alpha=1,
+    #          markeredgecolor="none", label='Original acks')
 
     # plot bytes received on client
     plot_until = index_plot_until(receive_timeList_original, plot_until_second)
@@ -928,13 +928,14 @@ def plot_test(replayInfo, mobileStats, client_dir, result_directory, classificat
                                                       stdev_server_tputs_original, loss_rate_original,
                                                       loss_rate_inverted, classification_label)
 
-    plot_throughput_distribution(client_tputs_original, server_tputs_original, result_carrier_directory, plot_title=plot_title)
-
     plot_seq_throughput_over_time(sent_in_timeList_original, sent_in_pList_original, sent_in_timeList_inverted, sent_in_pList_inverted,
                        receive_timeList_original, receive_pList_original, receive_timeList_inverted, receive_pList_inverted,
                        sent_ret_timeList_original, sent_ret_pList_original, sent_ret_timeList_inverted, sent_ret_pList_inverted,
                        ack_all_pList_original, ack_all_timeList_original,ack_all_pList_inverted, ack_all_timeList_inverted,
                        server_tputs_original, server_ts_original, client_tputs_original, client_ts_original, result_carrier_directory, plot_title=plot_title)
+
+    plot_throughput_distribution(client_tputs_original, server_tputs_original, result_carrier_directory,
+                                 plot_title=plot_title)
 
     return True
 

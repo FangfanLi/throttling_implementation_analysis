@@ -166,6 +166,7 @@ def doXputsCDFplots(gputs_original, client_gputs_original, gputs_inverted,
     plt.savefig("{}/{}_gputCDF.png".format(directory, title))
     plt.close()
 
+
 def doTputsInterval(timeL, packetL, client_sampling_interval):
     initS = packetL[0]
 
