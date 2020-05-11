@@ -854,7 +854,7 @@ def plot_seq_throughput_over_time(sent_in_timeList_original, sent_in_pList_origi
     # ax2.legend(loc='upper right', markerscale=2, fontsize=20)
     plt.xlabel('time (s)')
     ax1.set_ylabel('sequence number')
-    plt.title(plot_title)
+    # plt.title(plot_title)
 
     for ax in [ax1, ax2]:
         for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +

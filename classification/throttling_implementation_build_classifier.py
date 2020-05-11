@@ -23,6 +23,7 @@ from sklearn.svm import SVC
 
 train_stat_to_test = {}
 
+
 def read_tests(plots_directory):
     skip_plot_type = "throughput_distribution"
     X = []
@@ -34,7 +35,7 @@ def read_tests(plots_directory):
         plot_info = plot.split(".png")[0]
 
         # plot_type-client_id-history_count-replayName-avg_client-avg_server-std_client-std_server-loss_original-loss_inverted-implementation_type.png
-        plot_meta = plot_info.split("-")
+        plot_meta = plot_info.split("--")
         if len(plot_meta) != 11:
             continue
 
@@ -48,16 +49,17 @@ def read_tests(plots_directory):
         std_server = float(plot_meta[7])
         loss_original = float(plot_meta[8])
         loss_inverted = float(plot_meta[9])
-        implementation_type = float(plot_meta[10])
+        labeled_type = int(plot_meta[10].split("-")[1])
 
         if plot_type == skip_plot_type:
             continue
-        X.append([avg_server - avg_client, (std_server/avg_server) - (std_client/avg_client), loss_original - loss_inverted])
-        # X.append([avg_server - avg_client, std_client/avg_client, std_server/avg_server, loss_original - loss_inverted])
-        y.append(implementation_type)
+        # Coefficient of variation of client throughput can be used as one feature
+        X.append([(avg_server-avg_client)/avg_client, (std_server/avg_server) - (std_client/avg_client), loss_original - loss_inverted, std_client/avg_client])
+        # X.append([(avg_server - avg_client)/avg_client, (std_server/avg_server) - (std_client/avg_client), loss_original - loss_inverted])
+        y.append(labeled_type)
 
-        # train_stat_to_test[(avg_server - avg_client, std_client/avg_client, std_server/avg_server, loss_original - loss_inverted)] = "{}_{}".format(client_id, history_count)
-        train_stat_to_test[(avg_server - avg_client, (std_server/avg_server) - (std_client/avg_client), loss_original - loss_inverted)] = "{}_{}".format(client_id, history_count)
+        train_stat_to_test[((avg_server-avg_client)/avg_client, (std_server/avg_server) - (std_client/avg_client), loss_original - loss_inverted, std_client/avg_client)] = "{}_{}".format(client_id, history_count)
+        # train_stat_to_test[((avg_server - avg_client)/avg_client, (std_server/avg_server) - (std_client/avg_client), loss_original - loss_inverted)] = "{}_{}".format(client_id, history_count)
 
     return X, y
 
@@ -93,19 +95,23 @@ def main():
 
     X, y = read_tests(plots_directory)
 
+    print("num tests", len(X))
+
     trained_model = SVC(gamma='auto', probability=True)
-    probability_threshold = 0.7
+    probability_threshold = 0.6
 
     score_all = []
-    # random_state = random.randint(0, 100)
+    random_state = random.randint(0, 100)
+    wrong_percent = []
+    unknown_percent = []
 
-    kf = KFold(n_splits=5, random_state=None, shuffle=False)
+    kf = KFold(n_splits=5, random_state=random_state, shuffle=False)
     X = np.array(X)
     y = np.array(y)
     iter_count = 0
 
     for train_index, test_index in kf.split(X):
-        print("count iteration ", iter_count)
+        print("iteration", iter_count)
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
         count_unknown = 0
@@ -115,22 +121,31 @@ def main():
         X_test = list(X_test)
         y_pred = trained_model.predict_proba(X_test)
         for index in range(len(y_pred)):
-            # X_test_data = list(X_test[index])
+            X_test_data = list(X_test[index])
             y_pred_proba = list(y_pred[index])
             if max(y_pred_proba) < probability_threshold:
                 count_unknown += 1
-                # print("unknown, pred, test", (X_test_data[0], X_test_data[1], X_test_data[2]), train_stat_to_test[(X_test_data[0], X_test_data[1], X_test_data[2])], y_pred_proba.index(max(y_pred_proba)), (y_test[index] - 1))
-            # index starts from 0, but our label starts from 1
-            elif y_pred_proba.index(max(y_pred_proba)) != (y_test[index] - 1):
+                print("unknown, id {}, pred {}, label {}, prob {}, threshold {}".format(
+                    train_stat_to_test[(X_test_data[0], X_test_data[1], X_test_data[2], X_test_data[3])],
+                    # train_stat_to_test[(X_test_data[0], X_test_data[1], X_test_data[2])],
+                    y_pred_proba.index(max(y_pred_proba)) + 1, y_test[index], max(y_pred_proba), probability_threshold))
+            elif (y_pred_proba.index(max(y_pred_proba)) + 1) != y_test[index]:
                 count_wrong += 1
-                # print("wrong, pred, test",(X_test_data[0], X_test_data[1], X_test_data[2]),  train_stat_to_test[(X_test_data[0], X_test_data[1], X_test_data[2])], y_pred_proba.index(max(y_pred_proba)), (y_test[index] - 1))
+                print("wrong, id {}, pred {}, label {}, prob {}, threshold {}".format(
+                    train_stat_to_test[(X_test_data[0], X_test_data[1], X_test_data[2], X_test_data[3])],
+                    # train_stat_to_test[(X_test_data[0], X_test_data[1], X_test_data[2])],
+                    y_pred_proba.index(max(y_pred_proba)) + 1, y_test[index], max(y_pred_proba), probability_threshold))
             else:
                 count_correct += 1
 
         score_all.append(1 - (count_unknown + count_wrong)/len(y_pred))
+        wrong_percent.append(count_wrong/len(y_pred))
+        unknown_percent.append(count_unknown / len(y_pred))
         iter_count += 1
 
-    print("average score, all scores", mean(score_all), score_all)
+    print("average score, unknown %, all scores", mean(score_all), score_all)
+    print("average wrong percent", mean(wrong_percent), wrong_percent)
+    print("average unknown percent", mean(unknown_percent), unknown_percent)
 
     trained_model.fit(X, y)
     today_date = datetime.datetime.today()

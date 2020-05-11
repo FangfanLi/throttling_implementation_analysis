@@ -205,7 +205,7 @@ def main():
             "\r\n Please provide the following input: [test_stat]")
         sys.exit()
 
-    predict_probability_threshold = 0.7
+    predict_probability_threshold = 0.6
     filename = "trained_model.sav"
     trained_model = pickle.load(open(filename, "rb"))
 
@@ -218,7 +218,7 @@ def main():
     classification_results_ISP_replay = {}
 
     unknown_test_ids = {}
-    # review_tests = {}
+    review_tests = {}
     classification_label_percentage = {}
 
     count_tests = 0
@@ -241,17 +241,20 @@ def main():
             # [avg_client_tputs_original, avg_server_tputs_original, stdev_client_tputs_original,
             #  stdev_server_tputs_original, loss_rate_original, loss_rate_inverted]
             current_test_stat = test_stat[ISP_replay][uniqTestID]
-            avg_server = current_test_stat[0]
-            avg_client = current_test_stat[1]
+            avg_client = current_test_stat[0]
+            avg_server = current_test_stat[1]
             std_client = current_test_stat[2]
             std_server = current_test_stat[3]
             loss_original = current_test_stat[4]
             loss_inverted = current_test_stat[5]
             # 4 features
-            # test_stat_ISP_replay.append([avg_server - avg_client, std_client / avg_client, std_server / avg_server, loss_original - loss_inverted])
+
+            test_stat_ISP_replay.append([(avg_server - avg_client)/avg_client,
+                                         (std_server / avg_server) - (std_client / avg_client),
+                                         loss_original - loss_inverted, std_client / avg_client])
             # 3 features
-            test_stat_ISP_replay.append([avg_server - avg_client, (std_server/avg_server) - (std_client/avg_client),
-                                         loss_original - loss_inverted])
+            # test_stat_ISP_replay.append([(avg_server - avg_client)/avg_client, (std_server/avg_server) - (std_client/avg_client),
+            #                              loss_original - loss_inverted])
             unique_test_ids.append(uniqTestID)
 
         classification_results = trained_model.predict_proba(test_stat_ISP_replay)
@@ -285,7 +288,7 @@ def main():
                     unknown_test_ids[ISP][replayName] = []
                 unknown_test_ids[ISP][replayName].append(uniqTestID)
             else:
-                classification_label = classification_result.index(max(classification_result))
+                classification_label = classification_result.index(max(classification_result)) + 1
 
             if classification_label not in classification_results_ISP_replay[ISP_replay]:
                 classification_results_ISP_replay[ISP_replay][classification_label] = 0
@@ -294,13 +297,32 @@ def main():
             classification_results_ISP_replay[ISP_replay][classification_label] += 1
             classification_results_ISP[ISP][classification_label] += 1
 
-            if "ATT (cellular" in ISP:
+            # if ("ATT (cellular" in ISP) or ("Verizon (cellular" in ISP) or ("TMobile (cellular" in ISP):
+            #     if ISP not in tests_for_plotting:
+            #         tests_for_plotting[ISP] = {}
+            #     if replayName not in tests_for_plotting[ISP]:
+            #         tests_for_plotting[ISP][replayName] = {}
+            #     if classification_label not in tests_for_plotting[ISP][replayName]:
+            #         tests_for_plotting[ISP][replayName][classification_label] = []
+            #     if len(tests_for_plotting[ISP][replayName][classification_label]) > 200:
+            #         continue
+            #     tests_for_plotting[ISP][replayName][classification_label].append(uniqTestID)
+            if "Verizon (cellular" in ISP:
+                if classification_label == 2:
+                    continue
+                if classification_label not in review_tests:
+                    review_tests[classification_label] = {}
+                if replayName not in review_tests[classification_label]:
+                    review_tests[classification_label][replayName] = 0
+                review_tests[classification_label][replayName] += 1
+
                 if ISP not in tests_for_plotting:
                     tests_for_plotting[ISP] = {}
                 if replayName not in tests_for_plotting[ISP]:
                     tests_for_plotting[ISP][replayName] = {}
                 if classification_label not in tests_for_plotting[ISP][replayName]:
                     tests_for_plotting[ISP][replayName][classification_label] = []
+
                 tests_for_plotting[ISP][replayName][classification_label].append(uniqTestID)
 
             # count the number of cases of each classification
@@ -334,6 +356,7 @@ def main():
     json.dump(classification_results_ISP, open("classification_results_ISP.json", "w"))
     json.dump(classification_results_ISP_replay, open("classification_results_ISP_replay.json", "w"))
     json.dump(tests_for_plotting, open("tests_for_plotting.json", "w"))
+    print(review_tests)
 
 
 if __name__ == "__main__":
