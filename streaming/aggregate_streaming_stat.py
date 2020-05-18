@@ -235,7 +235,7 @@ def aggregate_stat(raw_stat_dir):
     get_video_quality_percentage(all_video_qualities, avg_playing_percentage)
     print("average seconds buffered:", avg_seconds_buffered)
     print("average estimated bandwidth:", avg_estimated_bandwidth)
-    print("average playing bitrates:", avg_playing_bitrates)
+    print("average playing bitrates:", avg_playing_bitrates/1E6)
     print("average joining time:", avg_joining_time)
     print("average buffering percentage:", avg_buffering_percentage)
     print("average buffering events:", avg_buffering_events)

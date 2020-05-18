@@ -47,7 +47,7 @@ def main():
     elif len(sys.argv) == 6:
         script, pcap_dir, client_ip, client_ip2, server_ip, server_port = sys.argv
     else:
-        print("\r\n example run: python3 clean_streaming_pcaps.py pcap_dir client_ip server_ip server_port")
+        print("\r\n example run: python3 clean_streaming_pcaps.py pcap_dir client_ip/16 [client_ip2]/16 server_ip server_port")
         sys.exit(1)
 
     clean_streaming_pcaps(pcap_dir, client_ip, server_ip, server_port, client_ip2)

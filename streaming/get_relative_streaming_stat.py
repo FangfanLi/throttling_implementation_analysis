@@ -114,6 +114,97 @@ TEST_SET_TO_PLOT_INDEX = {
     "144_bbr_40_0_10": (17, 0)
 }
 
+PLOT_TWO_STATS = {
+    2: {
+        "720_cubic_20_0_60" : (2, 2),
+        "720_cubic_20_0_30" : (1, 2),
+        "720_cubic_20_0_10" : (0, 2),
+        "480_cubic_20_0_60": (2, 1),
+        "480_cubic_20_0_30": (1, 1),
+        "480_cubic_20_0_10": (0, 1),
+        "360_cubic_20_0_60": (2, 0),
+        "360_cubic_20_0_30": (1, 0),
+        "360_cubic_20_0_10": (0, 0),
+        "720_bbr_20_0_60": (5, 2),
+        "720_bbr_20_0_30": (4, 2),
+        "720_bbr_20_0_10": (3, 2),
+        "480_bbr_20_0_60": (5, 1),
+        "480_bbr_20_0_30": (4, 1),
+        "480_bbr_20_0_10": (3, 1),
+        "360_bbr_20_0_60": (5, 0),
+        "360_bbr_20_0_30": (4, 0),
+        "360_bbr_20_0_10": (3, 0),
+    },
+    4: {
+        "720_cubic_0_0_30": (0, 2),
+        "720_cubic_20_0_30": (1, 2),
+        "720_cubic_40_0_30": (2, 2),
+        "480_cubic_0_0_30": (0, 1),
+        "480_cubic_20_0_30": (1, 1),
+        "480_cubic_40_0_30": (2, 1),
+        "360_cubic_0_0_30": (0, 0),
+        "360_cubic_20_0_30": (1, 0),
+        "360_cubic_40_0_30": (2, 0),
+        "720_bbr_0_0_30": (3, 2),
+        "720_bbr_20_0_30": (4, 2),
+        "720_bbr_40_0_30": (5, 2),
+        "480_bbr_0_0_30": (3, 1),
+        "480_bbr_20_0_30": (4, 1),
+        "480_bbr_40_0_30": (5, 1),
+        "360_bbr_0_0_30": (3, 0),
+        "360_bbr_20_0_30": (4, 0),
+        "360_bbr_40_0_30": (5, 0),
+    }
+}
+
+
+# Plot the relative difference graph, but with only 2 stats (e.g., quality and headroom)
+# The other stat is fixed, i.e., only tests with that stat set as default value are plotted
+# For example, if fixed_stat is watermark, only tests with watermark = 30 (default) are considered
+def plot_relative_diff_2stat(relative_diff_per_testset, baseline_stat, fixed_index, fixed_value, file_dir, plot_title):
+
+    fig, ax = plt.subplots(figsize=(6, 4), dpi=400)
+
+    rec_size = 0.2
+
+    if not relative_diff_per_testset:
+        return
+
+    cmap = plt.get_cmap('coolwarm')
+
+    for testset in relative_diff_per_testset:
+        # 720_cubic_20_0_30
+        parameters = testset.split("_")
+        quality_limit = parameters[0]
+        cc = parameters[1]
+        headroom = parameters[2]
+        watermark = parameters[4]
+        if parameters[fixed_index] != fixed_value:
+            continue
+        if testset not in PLOT_TWO_STATS[fixed_index]:
+            continue
+        x, y = PLOT_TWO_STATS[fixed_index][testset]
+        relative_diff = relative_diff_per_testset[testset]
+
+        ax.add_patch(
+            Rectangle((x * rec_size, y * rec_size), width=rec_size, height=rec_size, color=cmap(relative_diff + 0.5),
+                      ec=None, lw=None))
+
+    plt.yticks([0.1, 0.3, 0.5], ["360", "480", "720"])
+    x_ticks = ["0%", "20%", "40%", "0%", "20%", "40%"]
+    x_tick_start = (1.2 / len(x_ticks)) / 2
+    plt.xticks([(x_tick_start + (1.2 / len(x_ticks)) * i) for i in range(len(x_ticks))],
+               x_ticks)
+    # plt.axis('off')
+    sm = plt.cm.ScalarMappable(cmap=plt.get_cmap('coolwarm'))
+    sm._A = []
+    cbar = fig.colorbar(sm, ticks=[0, 0.5, 1], orientation='vertical', pad=0.03, shrink=1)
+    cbar.ax.set_yticklabels(['< - 100%', round(baseline_stat, 3), '> + 100%'])
+    ax.set_xlim([0, 1.2])
+    ax.set_ylim([0, 0.6])
+    plt.title("cubic             |                bbr")
+    plt.savefig(file_dir + '/' + plot_title + '.png', bbox_inches='tight')
+
 
 def plot_relative_diff(relative_diff_per_testset, baseline_stat, file_dir, plot_title):
     fig, ax = plt.subplots(figsize=(16, 6), dpi=400)
@@ -198,6 +289,9 @@ def main():
             print("{} {} {}".format(one_test_set, interested_stat, relative_diff))
 
         plot_relative_diff(relative_diff_per_testset, baseline_stat, "./", "{}_{}".format(stat_set, stat))
+        # fixed_index = 4
+        # fixed_value = "30"
+        # plot_relative_diff_2stat(relative_diff_per_testset, baseline_stat, fixed_index, fixed_value, "./", "{}_{}_{}_{}".format(stat_set, stat, fixed_value, fixed_index))
 
 
 if __name__ == "__main__":

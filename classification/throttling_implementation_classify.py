@@ -308,22 +308,11 @@ def main():
             #         continue
             #     tests_for_plotting[ISP][replayName][classification_label].append(uniqTestID)
             if "Verizon (cellular" in ISP:
-                if classification_label == 2:
-                    continue
-                if classification_label not in review_tests:
-                    review_tests[classification_label] = {}
-                if replayName not in review_tests[classification_label]:
-                    review_tests[classification_label][replayName] = 0
-                review_tests[classification_label][replayName] += 1
+                userID = uniqTestID.split("_")[0]
 
-                if ISP not in tests_for_plotting:
-                    tests_for_plotting[ISP] = {}
-                if replayName not in tests_for_plotting[ISP]:
-                    tests_for_plotting[ISP][replayName] = {}
-                if classification_label not in tests_for_plotting[ISP][replayName]:
-                    tests_for_plotting[ISP][replayName][classification_label] = []
-
-                tests_for_plotting[ISP][replayName][classification_label].append(uniqTestID)
+                if userID not in tests_for_plotting:
+                    tests_for_plotting[userID] = []
+                tests_for_plotting[userID].append(classification_label)
 
             # count the number of cases of each classification
             # what is the percentage of tests of ISP and ISP-replay that is of this classification
@@ -355,8 +344,7 @@ def main():
     json.dump(unknown_test_ids, open("unknown_test_ids.json", "w"))
     json.dump(classification_results_ISP, open("classification_results_ISP.json", "w"))
     json.dump(classification_results_ISP_replay, open("classification_results_ISP_replay.json", "w"))
-    json.dump(tests_for_plotting, open("tests_for_plotting.json", "w"))
-    print(review_tests)
+    json.dump(tests_for_plotting, open("verizon_classification_label_per_user.json", "w"))
 
 
 if __name__ == "__main__":
